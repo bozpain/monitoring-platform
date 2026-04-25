@@ -1,0 +1,4 @@
+[[metric]]
+context = "oracle_up"
+metricsdesc = { value = "Oracle database connection status" }
+request = "SELECT 1 AS value FROM dual"

@@ -1,0 +1,25 @@
+[Unit]
+Description=Oracle DB Exporter
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=monitoring
+Group=monitoring
+Type=simple
+
+EnvironmentFile=/monitoring/exporters/oracle/oracle_exporter.env
+
+ExecStart=/monitoring/exporters/oracle/oracledb_exporter \
+  --web.listen-address=:9161 \
+  --default.metrics=/monitoring/exporters/oracle/default-metrics.toml
+
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+StandardOutput=append:/monitoring/logs/exporters/oracle_exporter.log
+StandardError=append:/monitoring/logs/exporters/oracle_exporter-error.log
+
+[Install]
+WantedBy=multi-user.target
