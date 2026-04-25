@@ -1,0 +1,44 @@
+# Default: auto handle text files
+* text=auto
+
+##################################
+# FORCE LF (Linux format)
+##################################
+*.sh text eol=lf
+*.bash text eol=lf
+
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.conf text eol=lf
+*.env text eol=lf
+*.toml text eol=lf
+
+##################################
+# Windows specific (optional)
+##################################
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+##################################
+# Binary files (NO conversion)
+##################################
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+
+*.zip binary
+*.tar binary
+*.gz binary
+
+*.jar binary
+*.war binary
+
+##################################
+# Executable scripts
+##################################
+*.sh linguist-language=Shell
