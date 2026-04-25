@@ -18,16 +18,110 @@ Deployment ini membangun platform monitoring database berbasis:
 
 Target:
 
-```text
 - Scalable (ratusan DB)
 - 100% free
 - No internet dependency (offline ready)
 - Enterprise-style observability
+
+---
+
+## 2. Prerequisite (Download)
+
+Semua binary dan dependency harus disiapkan sebelum deployment.
+
+---
+
+### 2.1 Core Components
+
+Download:
+
+- VictoriaMetrics (single binary)
+- Prometheus (tar.gz)
+- Grafana (rpm / tar.gz)
+- Alertmanager (optional)
+- Node Exporter (tar.gz)
+
+---
+
+### 2.2 Database Exporters
+
+#### Oracle Exporter
+
+- oracle_exporter binary
+- Oracle Instant Client (basic + sqlplus)
+
+---
+
+#### MSSQL Exporter
+
+- mssql_exporter binary
+- ODBC Driver (Microsoft)
+- sqlcmd tools (optional)
+
+---
+
+### 2.3 OS Dependencies (Oracle Linux)
+
+Download dari yum.oracle.com:
+
+- libaio
+- libnsl
+- glibc
+- libstdc++
+- unixODBC
+
+---
+
+### 2.4 Grafana Plugins (Optional)
+
+- grafana plugins (offline package)
+
+---
+
+### 2.5 File Repository Structure
+
+```bash
+sources/
+├── tar/
+│   ├── prometheus.tar.gz
+│   ├── victoriametrics.tar.gz
+│   ├── node_exporter.tar.gz
+│   ├── oracle_exporter.tar.gz
+│   └── mssql_exporter.tar.gz
+├── rpm/
+│   ├── grafana.rpm
+│   └── dependencies.rpm
+└── checksum/
 ```
 
 ---
 
-## 2. Directory Structure (Target Server)
+### 2.6 Transfer ke Server
+
+```bash
+scp -r sources/ user@server:/monitoring/sources/
+```
+
+---
+
+### 2.7 Validation
+
+```bash
+ls /monitoring/sources/tar
+ls /monitoring/sources/rpm
+```
+
+---
+
+### 2.8 Notes
+
+- Tidak ada download langsung dari server
+- Semua dependency harus tersedia sebelum deployment
+- Pastikan versi kompatibel (Oracle, MSSQL, OS)
+
+---
+
+## 3. Directory Structure (Target Server)
 
 ```bash
 /monitoring/
@@ -51,7 +145,7 @@ Target:
 
 ---
 
-## 3. Deployment Sequence (MANDATORY ORDER)
+## 4. Deployment Sequence (MANDATORY ORDER)
 
 ```text
 01_prepare_vm.sh
@@ -66,7 +160,7 @@ Target:
 
 ---
 
-## 4. Step-by-Step Execution
+## 5. Step-by-Step Execution
 
 ---
 
@@ -75,12 +169,6 @@ Target:
 ```bash
 bash 01_prepare_vm.sh
 ```
-
-Ensure:
-
-- Time sync OK
-- Firewall configured
-- Required packages installed
 
 ---
 
@@ -144,7 +232,7 @@ Default login:
 
 ---
 
-### STEP 6 — (Optional) Alertmanager
+### STEP 6 — Alertmanager (Optional)
 
 ```bash
 bash 06_install_alertmanager.sh
@@ -152,16 +240,10 @@ bash 06_install_alertmanager.sh
 
 ---
 
-### STEP 7 — Install Oracle Exporter
+### STEP 7 — Oracle Exporter
 
 ```bash
 bash 07_install_oracle_exporter.sh
-```
-
-Ensure config:
-
-```bash
-/monitoring/config/oracle/oracle-metrics.toml
 ```
 
 Verify:
@@ -172,16 +254,10 @@ curl http://localhost:9161/metrics
 
 ---
 
-### STEP 8 — Install MSSQL Exporter
+### STEP 8 — MSSQL Exporter
 
 ```bash
 bash 08_install_mssql_exporter.sh
-```
-
-Ensure config:
-
-```bash
-/monitoring/config/mssql/mssql-metrics.toml
 ```
 
 Verify:
@@ -192,7 +268,7 @@ curl http://localhost:9182/metrics
 
 ---
 
-## 5. Prometheus Configuration
+## 6. Prometheus Configuration
 
 File:
 
@@ -200,85 +276,61 @@ File:
 /monitoring/config/prometheus.yml
 ```
 
-Example jobs:
-
 ```yaml
 scrape_configs:
   - job_name: oracle_exporter
     static_configs:
-      - targets:
-          - localhost:9161
+      - targets: ["localhost:9161"]
 
   - job_name: mssql_exporter
     static_configs:
-      - targets:
-          - localhost:9182
+      - targets: ["localhost:9182"]
 
   - job_name: node_exporter
     static_configs:
-      - targets:
-          - localhost:9100
+      - targets: ["localhost:9100"]
 ```
 
 ---
 
-## 6. Grafana Auto Provisioning
-
-Dashboard path:
+## 7. Grafana Auto Provisioning
 
 ```bash
 /monitoring/grafana/dashboards/
 ```
 
-Structure:
-
-```bash
+```text
 oracle/
 mssql/
 ```
 
-Provisioning config:
-
-```bash
-/monitoring/grafana/provisioning/dashboards/
-```
-
-Auto load dashboards on startup.
-
 ---
 
-## 7. Dashboards Included
+## 8. Dashboards Included
 
 ### Oracle
 
-```text
-01 - Oracle Fleet Overview
-02 - Oracle Performance DPA
-03 - Oracle Sessions & Blocking
-04 - Oracle SQL Activity
-05 - Oracle Tablespace & Capacity
-06 - Oracle RAC / ASM
-```
+- 01 - Oracle Fleet Overview
+- 02 - Oracle Performance DPA
+- 03 - Oracle Sessions & Blocking
+- 04 - Oracle SQL Activity
+- 05 - Oracle Tablespace & Capacity
+- 06 - Oracle RAC / ASM
 
 ---
 
 ### MSSQL
 
-```text
-01 - MSSQL Overview
-02 - MSSQL Performance
-03 - MSSQL Sessions & Blocking
-04 - MSSQL Capacity
-```
+- 01 - MSSQL Overview
+- 02 - MSSQL Performance
+- 03 - MSSQL Sessions & Blocking
+- 04 - MSSQL Capacity
 
 ---
 
-## 8. Service Management
-
-Restart all:
+## 9. Service Management
 
 ```bash
-systemctl daemon-reexec
 systemctl restart victoriametrics
 systemctl restart prometheus
 systemctl restart grafana-server
@@ -289,15 +341,15 @@ systemctl restart node_exporter
 
 ---
 
-## 9. Health Check
+## 10. Health Check
 
-### Prometheus targets
+Prometheus:
 
 ```text
 http://<server-ip>:9090/targets
 ```
 
-All must be:
+All status:
 
 ```text
 UP
@@ -305,25 +357,7 @@ UP
 
 ---
 
-### Exporter check
-
-```bash
-curl localhost:9161/metrics
-curl localhost:9182/metrics
-```
-
----
-
-### Grafana
-
-- Dashboards visible
-- Data populated
-
----
-
-## 10. Troubleshooting
-
-### Exporter not working
+## 11. Troubleshooting
 
 ```bash
 journalctl -u oracle_exporter -f
@@ -332,46 +366,12 @@ journalctl -u mssql_exporter -f
 
 ---
 
-### No data in Grafana
+## 12. Scaling Strategy
 
-Check:
-
-```text
-Prometheus → targets
-Metric exists
-Datasource configured
-```
-
----
-
-### Config file error
-
-```bash
-cat /monitoring/config/oracle/oracle-metrics.toml
-cat /monitoring/config/mssql/mssql-metrics.toml
-```
-
----
-
-## 11. Scaling Strategy
-
-```text
 - Add exporter per DB host
 - Central Prometheus scrape
 - VictoriaMetrics for long retention
 - Grafana for visualization
-```
-
----
-
-## 12. Final Notes
-
-```text
-- No internet dependency
-- Fully scriptable deployment
-- Operator friendly
-- Extendable to PostgreSQL / MongoDB
-```
 
 ---
 
