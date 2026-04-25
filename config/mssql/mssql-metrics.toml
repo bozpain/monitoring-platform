@@ -1,0 +1,173 @@
+[[metric]]
+context = "mssql_up"
+metricsdesc = { value = "MSSQL database connection status" }
+request = "SELECT 1 AS value"
+
+[[metric]]
+context = "mssql_sessions_total"
+metricsdesc = { value = "Total SQL Server sessions" }
+request = "SELECT COUNT(*) AS value FROM sys.dm_exec_sessions"
+
+[[metric]]
+context = "mssql_sessions_active"
+metricsdesc = { value = "Active SQL Server requests" }
+request = "SELECT COUNT(*) AS value FROM sys.dm_exec_requests WHERE session_id > 50"
+
+[[metric]]
+context = "mssql_sessions_blocked"
+metricsdesc = { value = "Blocked SQL Server requests" }
+request = "SELECT COUNT(*) AS value FROM sys.dm_exec_requests WHERE blocking_session_id <> 0"
+
+[[metric]]
+context = "mssql_wait_stats"
+labels = ["wait_type"]
+metricsdesc = { value = "SQL Server wait time ms" }
+request = "
+SELECT TOP 20
+       wait_type,
+       wait_time_ms AS value
+FROM sys.dm_os_wait_stats
+WHERE wait_type NOT LIKE 'SLEEP%'
+AND wait_type NOT LIKE 'BROKER%'
+AND wait_type NOT LIKE 'XE%'
+AND wait_type NOT LIKE 'SQLTRACE%'
+AND wait_type NOT LIKE 'CLR%'
+ORDER BY wait_time_ms DESC
+"
+
+[[metric]]
+context = "mssql_blocking_tree"
+labels = ["session_id", "blocking_session_id", "login_name", "host_name", "program_name", "wait_type"]
+metricsdesc = { value = "SQL Server blocking relationship" }
+request = "
+SELECT
+    CAST(r.session_id AS varchar(20)) AS session_id,
+    CAST(r.blocking_session_id AS varchar(20)) AS blocking_session_id,
+    ISNULL(s.login_name, 'UNKNOWN') AS login_name,
+    ISNULL(s.host_name, 'UNKNOWN') AS host_name,
+    ISNULL(s.program_name, 'UNKNOWN') AS program_name,
+    ISNULL(r.wait_type, 'UNKNOWN') AS wait_type,
+    1 AS value
+FROM sys.dm_exec_requests r
+JOIN sys.dm_exec_sessions s ON r.session_id = s.session_id
+WHERE r.blocking_session_id <> 0
+"
+
+[[metric]]
+context = "mssql_active_requests"
+labels = ["session_id", "login_name", "host_name", "program_name", "status", "wait_type"]
+metricsdesc = { value = "Active request elapsed time seconds" }
+request = "
+SELECT
+    CAST(r.session_id AS varchar(20)) AS session_id,
+    ISNULL(s.login_name, 'UNKNOWN') AS login_name,
+    ISNULL(s.host_name, 'UNKNOWN') AS host_name,
+    ISNULL(s.program_name, 'UNKNOWN') AS program_name,
+    ISNULL(r.status, 'UNKNOWN') AS status,
+    ISNULL(r.wait_type, 'CPU/RUNNING') AS wait_type,
+    DATEDIFF(second, r.start_time, GETDATE()) AS value
+FROM sys.dm_exec_requests r
+JOIN sys.dm_exec_sessions s ON r.session_id = s.session_id
+WHERE r.session_id > 50
+"
+
+[[metric]]
+context = "mssql_top_sql_cpu"
+labels = ["query_hash"]
+metricsdesc = { value = "Top SQL by total worker time" }
+request = "
+SELECT TOP 20
+       CONVERT(varchar(64), qs.query_hash, 1) AS query_hash,
+       qs.total_worker_time AS value
+FROM sys.dm_exec_query_stats qs
+ORDER BY qs.total_worker_time DESC
+"
+
+[[metric]]
+context = "mssql_top_sql_elapsed"
+labels = ["query_hash"]
+metricsdesc = { value = "Top SQL by elapsed time" }
+request = "
+SELECT TOP 20
+       CONVERT(varchar(64), qs.query_hash, 1) AS query_hash,
+       qs.total_elapsed_time AS value
+FROM sys.dm_exec_query_stats qs
+ORDER BY qs.total_elapsed_time DESC
+"
+
+[[metric]]
+context = "mssql_top_sql_logical_reads"
+labels = ["query_hash"]
+metricsdesc = { value = "Top SQL by logical reads" }
+request = "
+SELECT TOP 20
+       CONVERT(varchar(64), qs.query_hash, 1) AS query_hash,
+       qs.total_logical_reads AS value
+FROM sys.dm_exec_query_stats qs
+ORDER BY qs.total_logical_reads DESC
+"
+
+[[metric]]
+context = "mssql_top_sql_executions"
+labels = ["query_hash"]
+metricsdesc = { value = "Top SQL by executions" }
+request = "
+SELECT TOP 20
+       CONVERT(varchar(64), qs.query_hash, 1) AS query_hash,
+       qs.execution_count AS value
+FROM sys.dm_exec_query_stats qs
+ORDER BY qs.execution_count DESC
+"
+
+[[metric]]
+context = "mssql_database_size"
+labels = ["database_name"]
+metricsdesc = { value = "Database size GB" }
+request = "
+SELECT
+    DB_NAME(database_id) AS database_name,
+    CAST(SUM(size) * 8.0 / 1024 / 1024 AS decimal(18,2)) AS value
+FROM sys.master_files
+GROUP BY database_id
+"
+
+[[metric]]
+context = "mssql_database_state"
+labels = ["database_name", "state_desc", "recovery_model_desc"]
+metricsdesc = { value = "Database state" }
+request = "
+SELECT
+    name AS database_name,
+    state_desc,
+    recovery_model_desc,
+    1 AS value
+FROM sys.databases
+"
+
+[[metric]]
+context = "mssql_backup_age_hours"
+labels = ["database_name"]
+metricsdesc = { value = "Last full backup age hours" }
+request = "
+SELECT
+    d.name AS database_name,
+    ISNULL(DATEDIFF(hour, MAX(b.backup_finish_date), GETDATE()), 999999) AS value
+FROM sys.databases d
+LEFT JOIN msdb.dbo.backupset b
+    ON d.name = b.database_name
+   AND b.type = 'D'
+GROUP BY d.name
+"
+
+[[metric]]
+context = "mssql_data_file_free_percent"
+labels = ["database_name", "file_name", "type_desc"]
+metricsdesc = { value = "Data/log file free percent" }
+request = "
+SELECT
+    DB_NAME(mf.database_id) AS database_name,
+    mf.name AS file_name,
+    mf.type_desc,
+    CAST((mf.size - FILEPROPERTY(mf.name, 'SpaceUsed')) * 100.0 / NULLIF(mf.size,0) AS decimal(18,2)) AS value
+FROM sys.database_files mf
+"

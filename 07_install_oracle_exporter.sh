@@ -11,8 +11,8 @@ LOG_DIR="$BASE_DIR/logs/exporters"
 SERVICE_SRC="./systemd/oracle_exporter.service"
 SERVICE_DST="/etc/systemd/system/oracle_exporter.service"
 
-METRICS_SRC="./config/oracle/dpa-metrics.toml"
-METRICS_DST="$ORACLE_DIR/dpa-metrics.toml"
+METRICS_SRC="./config/oracle/oracle-metrics.toml"
+METRICS_DST="$ORACLE_DIR/oracle-metrics.toml"
 
 echo "[INFO] Installing Oracle Exporter..."
 
