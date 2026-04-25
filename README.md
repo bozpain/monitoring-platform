@@ -65,9 +65,19 @@ grafana-*.rpm
 
 ---
 
-## Deployment Order
+## Deployment
+
+### One Command Deployment (Recommended)
 
 Run as root on the monitoring VM:
+
+```bash
+./deploy_all.sh
+```
+
+---
+
+### Manual Deployment (Advanced / Debug)
 
 ```bash
 ./01_prepare_vm.sh
@@ -77,6 +87,31 @@ Run as root on the monitoring VM:
 ./05_install_grafana.sh
 ./06_install_alertmanager.sh
 ./07_install_oracle_exporter.sh
+```
+
+---
+
+## Post Deployment (Required)
+
+### Configure Oracle Exporter
+
+Edit:
+
+```bash
+vi /monitoring/exporters/oracle/oracle_exporter.env
+```
+
+Example:
+
+```bash
+DATA_SOURCE_NAME=username/password@//host:1521/service_name
+```
+
+Start exporter:
+
+```bash
+systemctl restart oracle_exporter
+systemctl status oracle_exporter --no-pager
 ```
 
 ---
@@ -91,29 +126,6 @@ Run as root on the monitoring VM:
 | VictoriaMetrics | 8428 |
 | Node Exporter   | 9100 |
 | Oracle Exporter | 9161 |
-
----
-
-## Oracle Exporter Setup
-
-After installing Oracle Exporter, edit:
-
-```bash
-vi /monitoring/exporters/oracle/oracle_exporter.env
-```
-
-Example:
-
-```bash
-DATA_SOURCE_NAME=monitoring_user/password@//db-host:1521/service_name
-```
-
-Then start:
-
-```bash
-systemctl restart oracle_exporter
-systemctl status oracle_exporter --no-pager
-```
 
 ---
 
