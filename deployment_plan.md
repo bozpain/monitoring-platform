@@ -129,8 +129,6 @@ active (running)
 
 ## 7. Web Access
 
-Open browser:
-
 ```text
 Grafana          http://VM_IP:3000
 Prometheus       http://VM_IP:9090
@@ -158,37 +156,56 @@ oracle_exporter UP
 
 ---
 
-## 9. Grafana Setup
+## 9. Grafana Setup (Auto Provisioned)
 
 ### Login
+
+```text
+http://VM_IP:3000
+```
 
 ```text
 username: admin
 password: admin
 ```
 
-### Add Data Source
+---
 
-- Type: Prometheus
-- URL:
+### Data Source
+
+VictoriaMetrics datasource is automatically provisioned.
 
 ```text
-http://localhost:8428
+Name: VictoriaMetrics
+URL : http://localhost:8428
 ```
-
-Click: **Save & Test**
 
 ---
 
-### Import Dashboard
+### Dashboard
 
-Use dashboard ID:
+Dashboard is automatically created.
 
 ```text
-1860
+Folder   : Oracle
+Dashboard: Oracle DPA Monitoring
 ```
 
-(Node Exporter Full Dashboard)
+---
+
+### Optional Manual Import
+
+If dashboard does not appear:
+
+```text
+Dashboards → New → Import → Upload JSON
+```
+
+File:
+
+```text
+/monitoring/grafana/dashboards/oracle-dpa-dashboard.json
+```
 
 ---
 
@@ -199,7 +216,8 @@ Use dashboard ID:
 - [ ] Node Exporter UP
 - [ ] Oracle Exporter UP
 - [ ] Grafana accessible
-- [ ] Dashboard showing data
+- [ ] Dashboard loaded
+- [ ] Metrics visible
 
 ---
 
@@ -224,8 +242,6 @@ netstat -tulnp | grep <port>
 
 ### Exporter no data
 
-Check:
-
 ```bash
 curl http://localhost:9100/metrics
 curl http://localhost:9161/metrics
@@ -235,12 +251,16 @@ curl http://localhost:9161/metrics
 
 ### Prometheus target DOWN
 
-- Check service
-- Check port
-- Restart:
-
 ```bash
 systemctl restart prometheus
+```
+
+---
+
+### Grafana dashboard missing
+
+```bash
+systemctl restart grafana-server
 ```
 
 ---
@@ -250,12 +270,11 @@ systemctl restart prometheus
 - Always run scripts as root
 - Ensure files exist in `/monitoring/sources`
 - Oracle exporter requires manual configuration
-- Internet is not required after files are copied
+- No internet required after file transfer
+- Grafana datasource & dashboard auto-provisioned
 
 ---
 
 ## Deployment Complete
 
-Monitoring platform is ready to use.
-
----
+Monitoring platform is ready for use.
