@@ -175,3 +175,68 @@ FROM (
 )
 WHERE rownum <= 10
 "
+
+[[metric]]
+context = "oracle_sessions_by_user"
+labels = ["username"]
+metricsdesc = { value = "Sessions by username" }
+request = "
+SELECT NVL(username, 'BACKGROUND') AS username,
+       COUNT(*) AS value
+FROM v$session
+GROUP BY NVL(username, 'BACKGROUND')
+"
+
+[[metric]]
+context = "oracle_sessions_by_program"
+labels = ["program"]
+metricsdesc = { value = "Sessions by program" }
+request = "
+SELECT SUBSTR(NVL(program, 'UNKNOWN'), 1, 80) AS program,
+       COUNT(*) AS value
+FROM v$session
+GROUP BY SUBSTR(NVL(program, 'UNKNOWN'), 1, 80)
+"
+
+[[metric]]
+context = "oracle_sessions_by_machine"
+labels = ["machine"]
+metricsdesc = { value = "Sessions by machine" }
+request = "
+SELECT SUBSTR(NVL(machine, 'UNKNOWN'), 1, 80) AS machine,
+       COUNT(*) AS value
+FROM v$session
+GROUP BY SUBSTR(NVL(machine, 'UNKNOWN'), 1, 80)
+"
+
+[[metric]]
+context = "oracle_sessions_by_wait_class"
+labels = ["wait_class"]
+metricsdesc = { value = "Sessions by wait class" }
+request = "
+SELECT NVL(wait_class, 'UNKNOWN') AS wait_class,
+       COUNT(*) AS value
+FROM v$session
+WHERE status = 'ACTIVE'
+GROUP BY NVL(wait_class, 'UNKNOWN')
+"
+
+[[metric]]
+context = "oracle_long_running_sessions"
+labels = ["sid", "serial", "username", "program", "machine", "status", "event", "sql_id"]
+metricsdesc = { value = "Long running active sessions in seconds" }
+request = "
+SELECT TO_CHAR(sid) AS sid,
+       TO_CHAR(serial#) AS serial,
+       NVL(username, 'UNKNOWN') AS username,
+       SUBSTR(NVL(program, 'UNKNOWN'), 1, 80) AS program,
+       SUBSTR(NVL(machine, 'UNKNOWN'), 1, 80) AS machine,
+       NVL(status, 'UNKNOWN') AS status,
+       SUBSTR(NVL(event, 'UNKNOWN'), 1, 80) AS event,
+       NVL(sql_id, 'UNKNOWN') AS sql_id,
+       last_call_et AS value
+FROM v$session
+WHERE status = 'ACTIVE'
+AND type = 'USER'
+AND last_call_et >= 300
+"
