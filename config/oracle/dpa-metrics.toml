@@ -145,3 +145,33 @@ FROM (
 )
 WHERE rownum <= 10
 "
+
+[[metric]]
+context = "oracle_top_sql_disk_reads"
+labels = ["sql_id"]
+metricsdesc = { value = "Top SQL disk reads" }
+request = "
+SELECT sql_id, disk_reads AS value
+FROM (
+  SELECT sql_id, disk_reads
+  FROM v$sql
+  WHERE sql_id IS NOT NULL
+  ORDER BY disk_reads DESC
+)
+WHERE rownum <= 10
+"
+
+[[metric]]
+context = "oracle_top_sql_executions"
+labels = ["sql_id"]
+metricsdesc = { value = "Top SQL executions" }
+request = "
+SELECT sql_id, executions AS value
+FROM (
+  SELECT sql_id, executions
+  FROM v$sql
+  WHERE sql_id IS NOT NULL
+  ORDER BY executions DESC
+)
+WHERE rownum <= 10
+"
