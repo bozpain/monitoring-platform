@@ -1,0 +1,168 @@
+{
+  "title": "04 - Oracle SQL Activity",
+  "uid": "oracle-sql-activity",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "tags": ["oracle", "sql", "performance"],
+  "editable": true,
+  "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "instance",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "query": "label_values(up{job=\"oracle_exporter\"}, instance)",
+        "refresh": 1,
+        "includeAll": true,
+        "multi": true
+      }
+    ]
+  },
+  "time": {
+    "from": "now-3h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "table",
+      "title": "Top SQL by Elapsed Time",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sort_desc(oracle_top_sql_elapsed_value{instance=~\"$instance\"})",
+          "legendFormat": "{{sql_id}}",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Top SQL by CPU Time",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sort_desc(oracle_top_sql_cpu_time_value{instance=~\"$instance\"})",
+          "legendFormat": "{{sql_id}}",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Top SQL by Buffer Gets",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sort_desc(oracle_top_sql_buffer_gets_value{instance=~\"$instance\"})",
+          "legendFormat": "{{sql_id}}",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Top SQL by Disk Reads",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sort_desc(oracle_top_sql_disk_reads_value{instance=~\"$instance\"})",
+          "legendFormat": "{{sql_id}}",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Top SQL by Executions",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sort_desc(oracle_top_sql_executions_value{instance=~\"$instance\"})",
+          "legendFormat": "{{sql_id}}",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Top SQL by Rows Processed",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sort_desc(oracle_top_sql_rows_processed_value{instance=~\"$instance\"})",
+          "legendFormat": "{{sql_id}}",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Top SQL by Parse Calls",
+      "gridPos": { "x": 0, "y": 24, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sort_desc(oracle_top_sql_parse_calls_value{instance=~\"$instance\"})",
+          "legendFormat": "{{sql_id}}",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "Top SQL Version Count (Cursor Issues)",
+      "gridPos": { "x": 12, "y": 24, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sort_desc(oracle_top_sql_version_count_value{instance=~\"$instance\"})",
+          "legendFormat": "{{sql_id}}",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "SQL Plan Hash Mapping",
+      "gridPos": { "x": 0, "y": 32, "w": 24, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "oracle_sql_plan_hash_value{instance=~\"$instance\"}",
+          "legendFormat": "sql={{sql_id}} plan={{plan_hash_value}}",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    }
+  ]
+}
