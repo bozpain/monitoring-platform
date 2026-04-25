@@ -1,0 +1,26 @@
+[Unit]
+Description=Prometheus
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=monitoring
+Group=monitoring
+Type=simple
+
+ExecStart=/monitoring/prometheus/bin/prometheus \
+  --config.file=/monitoring/prometheus/conf/prometheus.yml \
+  --storage.tsdb.path=/monitoring/data/prometheus \
+  --web.listen-address=:9090 \
+  --storage.tsdb.retention.time=1d \
+  --web.enable-lifecycle
+
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+StandardOutput=append:/monitoring/logs/prometheus/prometheus.log
+StandardError=append:/monitoring/logs/prometheus/prometheus-error.log
+
+[Install]
+WantedBy=multi-user.target
