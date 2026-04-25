@@ -36,6 +36,14 @@ Alertmanager (alerting)
 
 ---
 
+## Architecture Diagram
+
+<p align="center">
+  <img src="docs/images/oracle-monitoring-architecture.png" width="900"/>
+</p>
+
+---
+
 ## Key Components
 
 | Component       | Description               |
