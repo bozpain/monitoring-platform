@@ -1,0 +1,24 @@
+[Unit]
+Description=Prometheus Alertmanager
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=monitoring
+Group=monitoring
+Type=simple
+
+ExecStart=/monitoring/alertmanager/bin/alertmanager \
+  --config.file=/monitoring/alertmanager/conf/alertmanager.yml \
+  --storage.path=/monitoring/data/alertmanager \
+  --web.listen-address=:9093
+
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+StandardOutput=append:/monitoring/logs/alertmanager/alertmanager.log
+StandardError=append:/monitoring/logs/alertmanager/alertmanager-error.log
+
+[Install]
+WantedBy=multi-user.target
