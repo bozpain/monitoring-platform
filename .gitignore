@@ -1,0 +1,42 @@
+# ========================
+# ENV (SENSITIVE)
+# ========================
+env/*.env
+!env/*.env.example
+
+# ========================
+# RUNTIME (JANGAN MASUK GIT)
+# ========================
+data/
+logs/
+monitoring/data/
+monitoring/logs/
+
+# ========================
+# BINARIES
+# ========================
+*.tar.gz
+*.rpm
+*.zip
+*.gz
+
+# ========================
+# SECRETS
+# ========================
+*.key
+*.pem
+*.crt
+*.password
+*.secret
+*.env
+
+# ========================
+# OS / EDITOR
+# ========================
+.DS_Store
+Thumbs.db
+
+# ========================
+# VSCODE (OPTIONAL)
+# ========================
+.vscode/
