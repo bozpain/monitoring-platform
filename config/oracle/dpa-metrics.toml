@@ -318,3 +318,69 @@ FROM (
 )
 WHERE rownum <= 50
 "
+
+[[metric]]
+context = "oracle_tablespace_usage"
+labels = ["tablespace_name", "contents", "status"]
+metricsdesc = { used_percent = "Tablespace used percent", used_gb = "Tablespace used GB", free_gb = "Tablespace free GB", total_gb = "Tablespace total GB" }
+request = "
+SELECT df.tablespace_name,
+       NVL(ts.contents, 'UNKNOWN') AS contents,
+       NVL(ts.status, 'UNKNOWN') AS status,
+       ROUND((df.total_bytes - NVL(fs.free_bytes, 0)) / df.total_bytes * 100, 2) AS used_percent,
+       ROUND((df.total_bytes - NVL(fs.free_bytes, 0)) / 1024 / 1024 / 1024, 2) AS used_gb,
+       ROUND(NVL(fs.free_bytes, 0) / 1024 / 1024 / 1024, 2) AS free_gb,
+       ROUND(df.total_bytes / 1024 / 1024 / 1024, 2) AS total_gb
+FROM (
+  SELECT tablespace_name, SUM(bytes) AS total_bytes
+  FROM dba_data_files
+  GROUP BY tablespace_name
+) df
+LEFT JOIN (
+  SELECT tablespace_name, SUM(bytes) AS free_bytes
+  FROM dba_free_space
+  GROUP BY tablespace_name
+) fs ON df.tablespace_name = fs.tablespace_name
+LEFT JOIN dba_tablespaces ts ON df.tablespace_name = ts.tablespace_name
+"
+
+[[metric]]
+context = "oracle_temp_usage"
+labels = ["tablespace_name"]
+metricsdesc = { used_percent = "Temporary tablespace used percent", used_gb = "Temporary tablespace used GB", total_gb = "Temporary tablespace total GB" }
+request = "
+SELECT tf.tablespace_name,
+       ROUND(NVL(tu.used_bytes, 0) / tf.total_bytes * 100, 2) AS used_percent,
+       ROUND(NVL(tu.used_bytes, 0) / 1024 / 1024 / 1024, 2) AS used_gb,
+       ROUND(tf.total_bytes / 1024 / 1024 / 1024, 2) AS total_gb
+FROM (
+  SELECT tablespace_name, SUM(bytes) AS total_bytes
+  FROM dba_temp_files
+  GROUP BY tablespace_name
+) tf
+LEFT JOIN (
+  SELECT tablespace_name, SUM(bytes_used) AS used_bytes
+  FROM v$temp_space_header
+  GROUP BY tablespace_name
+) tu ON tf.tablespace_name = tu.tablespace_name
+"
+
+[[metric]]
+context = "oracle_fra_usage"
+labels = ["file_type"]
+metricsdesc = { used_percent = "FRA used percent by file type", used_gb = "FRA used GB by file type", reclaimable_gb = "FRA reclaimable GB by file type" }
+request = "
+SELECT file_type,
+       percent_space_used AS used_percent,
+       ROUND(space_used / 1024 / 1024 / 1024, 2) AS used_gb,
+       ROUND(space_reclaimable / 1024 / 1024 / 1024, 2) AS reclaimable_gb
+FROM v$flash_recovery_area_usage
+"
+
+[[metric]]
+context = "oracle_fra_limit"
+metricsdesc = { value = "FRA limit GB" }
+request = "
+SELECT ROUND(space_limit / 1024 / 1024 / 1024, 2) AS value
+FROM v$recovery_file_dest
+"
