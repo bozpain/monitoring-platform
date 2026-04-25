@@ -41,6 +41,19 @@ fi
 echo "[INFO] Backing up Grafana config..."
 cp /etc/grafana/grafana.ini "$CONF_BACKUP_DIR/grafana.ini.bak.$(date +%Y%m%d_%H%M%S)" || true
 
+echo "[INFO] Installing Grafana provisioning..."
+
+mkdir -p /etc/grafana/provisioning/datasources
+mkdir -p /etc/grafana/provisioning/dashboards
+mkdir -p /monitoring/grafana/dashboards
+
+cp ./grafana/provisioning/datasources/*.yml /etc/grafana/provisioning/datasources/
+cp ./grafana/provisioning/dashboards/*.yml /etc/grafana/provisioning/dashboards/
+cp ./grafana/dashboards/*.json /monitoring/grafana/dashboards/
+
+chown -R grafana:grafana /etc/grafana/provisioning
+chown -R grafana:grafana /monitoring/grafana/dashboards
+
 echo "[INFO] Installing custom systemd service..."
 cp "$SERVICE_SRC" "$SERVICE_DST"
 
