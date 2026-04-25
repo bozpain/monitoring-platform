@@ -1,0 +1,25 @@
+[Unit]
+Description=VictoriaMetrics Single Node
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=monitoring
+Group=monitoring
+Type=simple
+
+ExecStart=/monitoring/victoriametrics/bin/victoria-metrics-prod \
+  -storageDataPath=/monitoring/data/victoriametrics \
+  -retentionPeriod=30d \
+  -httpListenAddr=:8428 \
+  -loggerLevel=INFO
+
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+StandardOutput=append:/monitoring/logs/victoriametrics/victoriametrics.log
+StandardError=append:/monitoring/logs/victoriametrics/victoriametrics-error.log
+
+[Install]
+WantedBy=multi-user.target
