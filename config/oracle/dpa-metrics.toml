@@ -384,3 +384,116 @@ request = "
 SELECT ROUND(space_limit / 1024 / 1024 / 1024, 2) AS value
 FROM v$recovery_file_dest
 "
+
+[[metric]]
+context = "oracle_rac_instance_status"
+labels = ["inst_id", "instance_name", "host_name", "status"]
+metricsdesc = { value = "RAC instance status" }
+request = "
+SELECT TO_CHAR(inst_id) AS inst_id,
+       instance_name,
+       host_name,
+       status,
+       1 AS value
+FROM gv$instance
+"
+
+[[metric]]
+context = "oracle_rac_active_sessions"
+labels = ["inst_id", "instance_name"]
+metricsdesc = { value = "RAC active sessions by instance" }
+request = "
+SELECT TO_CHAR(s.inst_id) AS inst_id,
+       i.instance_name,
+       COUNT(*) AS value
+FROM gv$session s
+JOIN gv$instance i ON s.inst_id = i.inst_id
+WHERE s.status = 'ACTIVE'
+GROUP BY s.inst_id, i.instance_name
+"
+
+[[metric]]
+context = "oracle_rac_blocked_sessions"
+labels = ["inst_id", "instance_name"]
+metricsdesc = { value = "RAC blocked sessions by instance" }
+request = "
+SELECT TO_CHAR(s.inst_id) AS inst_id,
+       i.instance_name,
+       COUNT(*) AS value
+FROM gv$session s
+JOIN gv$instance i ON s.inst_id = i.inst_id
+WHERE s.blocking_session IS NOT NULL
+GROUP BY s.inst_id, i.instance_name
+"
+
+[[metric]]
+context = "oracle_rac_wait_class"
+labels = ["inst_id", "instance_name", "wait_class"]
+metricsdesc = { value = "RAC active sessions by wait class" }
+request = "
+SELECT TO_CHAR(s.inst_id) AS inst_id,
+       i.instance_name,
+       NVL(s.wait_class, 'UNKNOWN') AS wait_class,
+       COUNT(*) AS value
+FROM gv$session s
+JOIN gv$instance i ON s.inst_id = i.inst_id
+WHERE s.status = 'ACTIVE'
+AND NVL(s.wait_class, 'UNKNOWN') <> 'Idle'
+GROUP BY s.inst_id, i.instance_name, NVL(s.wait_class, 'UNKNOWN')
+"
+
+[[metric]]
+context = "oracle_rac_gc_waits"
+labels = ["inst_id", "instance_name", "event"]
+metricsdesc = { value = "RAC global cache waits" }
+request = "
+SELECT TO_CHAR(s.inst_id) AS inst_id,
+       i.instance_name,
+       s.event,
+       COUNT(*) AS value
+FROM gv$session s
+JOIN gv$instance i ON s.inst_id = i.inst_id
+WHERE s.status = 'ACTIVE'
+AND s.event LIKE 'gc%'
+GROUP BY s.inst_id, i.instance_name, s.event
+"
+
+[[metric]]
+context = "oracle_services_status"
+labels = ["inst_id", "name", "network_name"]
+metricsdesc = { value = "Oracle services status by instance" }
+request = "
+SELECT TO_CHAR(inst_id) AS inst_id,
+       name,
+       NVL(network_name, 'UNKNOWN') AS network_name,
+       1 AS value
+FROM gv$active_services
+WHERE name NOT LIKE 'SYS$%'
+"
+
+[[metric]]
+context = "oracle_asm_diskgroup_usage"
+labels = ["name", "state", "type"]
+metricsdesc = { used_percent = "ASM diskgroup used percent", free_gb = "ASM diskgroup free GB", total_gb = "ASM diskgroup total GB" }
+request = "
+SELECT name,
+       state,
+       type,
+       ROUND((total_mb - free_mb) / NULLIF(total_mb, 0) * 100, 2) AS used_percent,
+       ROUND(free_mb / 1024, 2) AS free_gb,
+       ROUND(total_mb / 1024, 2) AS total_gb
+FROM v$asm_diskgroup
+"
+
+[[metric]]
+context = "oracle_asm_operation"
+labels = ["group_number", "operation", "state", "power"]
+metricsdesc = { value = "ASM rebalance or operation estimate minutes" }
+request = "
+SELECT TO_CHAR(group_number) AS group_number,
+       operation,
+       state,
+       TO_CHAR(power) AS power,
+       NVL(est_minutes, 0) AS value
+FROM v$asm_operation
+"
