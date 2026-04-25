@@ -1,0 +1,22 @@
+[Unit]
+Description=Node Exporter
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=monitoring
+Group=monitoring
+Type=simple
+
+ExecStart=/monitoring/exporters/node/node_exporter \
+  --web.listen-address=:9100
+
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+StandardOutput=append:/monitoring/logs/exporters/node_exporter.log
+StandardError=append:/monitoring/logs/exporters/node_exporter-error.log
+
+[Install]
+WantedBy=multi-user.target
