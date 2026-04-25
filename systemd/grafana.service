@@ -1,0 +1,23 @@
+[Unit]
+Description=Grafana Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=grafana
+Group=grafana
+Type=simple
+
+ExecStart=/usr/sbin/grafana-server \
+  --config=/etc/grafana/grafana.ini \
+  --homepath=/usr/share/grafana
+
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+StandardOutput=append:/monitoring/logs/grafana/grafana.log
+StandardError=append:/monitoring/logs/grafana/grafana-error.log
+
+[Install]
+WantedBy=multi-user.target
