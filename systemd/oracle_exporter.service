@@ -12,7 +12,7 @@ EnvironmentFile=/monitoring/exporters/oracle/oracle_exporter.env
 
 ExecStart=/monitoring/exporters/oracle/oracledb_exporter \
   --web.listen-address=:9161 \
-  --default.metrics=/monitoring/exporters/oracle/default-metrics.toml
+  --default.metrics=/monitoring/exporters/oracle/dpa-metrics.toml
 
 Restart=always
 RestartSec=5

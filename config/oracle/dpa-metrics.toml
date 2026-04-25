@@ -1,0 +1,147 @@
+[[metric]]
+context = "oracle_up"
+metricsdesc = { value = "Oracle database connection status" }
+request = "SELECT 1 AS value FROM dual"
+
+[[metric]]
+context = "oracle_sessions_total"
+metricsdesc = { value = "Total sessions" }
+request = "SELECT COUNT(*) AS value FROM v$session"
+
+[[metric]]
+context = "oracle_sessions_active"
+metricsdesc = { value = "Active sessions" }
+request = "SELECT COUNT(*) AS value FROM v$session WHERE status = 'ACTIVE'"
+
+[[metric]]
+context = "oracle_sessions_blocked"
+metricsdesc = { value = "Blocked sessions" }
+request = "SELECT COUNT(*) AS value FROM v$session WHERE blocking_session IS NOT NULL"
+
+[[metric]]
+context = "oracle_ash_like_wait_class"
+labels = ["wait_class"]
+metricsdesc = { value = "ASH-like active sessions by wait class" }
+request = "
+SELECT wait_class, COUNT(*) AS value
+FROM v$session
+WHERE status = 'ACTIVE'
+AND wait_class IS NOT NULL
+AND wait_class <> 'Idle'
+GROUP BY wait_class
+"
+
+[[metric]]
+context = "oracle_ash_like_wait_event"
+labels = ["wait_class", "event"]
+metricsdesc = { value = "ASH-like active sessions by wait event" }
+request = "
+SELECT wait_class, event, COUNT(*) AS value
+FROM v$session
+WHERE status = 'ACTIVE'
+AND wait_class IS NOT NULL
+AND wait_class <> 'Idle'
+AND event IS NOT NULL
+GROUP BY wait_class, event
+"
+
+[[metric]]
+context = "oracle_active_sql"
+labels = ["sql_id", "username", "program"]
+metricsdesc = { value = "Active sessions by SQL ID" }
+request = "
+SELECT NVL(s.sql_id, 'UNKNOWN') AS sql_id,
+       NVL(s.username, 'UNKNOWN') AS username,
+       SUBSTR(NVL(s.program, 'UNKNOWN'), 1, 60) AS program,
+       COUNT(*) AS value
+FROM v$session s
+WHERE s.status = 'ACTIVE'
+GROUP BY NVL(s.sql_id, 'UNKNOWN'),
+         NVL(s.username, 'UNKNOWN'),
+         SUBSTR(NVL(s.program, 'UNKNOWN'), 1, 60)
+"
+
+[[metric]]
+context = "oracle_blocking_tree"
+labels = ["blocked_sid", "blocking_sid", "blocked_user", "blocking_status", "event"]
+metricsdesc = { value = "Blocking session relationship" }
+request = "
+SELECT TO_CHAR(s.sid) AS blocked_sid,
+       TO_CHAR(s.blocking_session) AS blocking_sid,
+       NVL(s.username, 'UNKNOWN') AS blocked_user,
+       NVL(s.blocking_session_status, 'UNKNOWN') AS blocking_status,
+       NVL(s.event, 'UNKNOWN') AS event,
+       1 AS value
+FROM v$session s
+WHERE s.blocking_session IS NOT NULL
+"
+
+[[metric]]
+context = "oracle_db_time_per_sec"
+metricsdesc = { value = "Database time per second" }
+request = "
+SELECT value AS value
+FROM v$sysmetric
+WHERE metric_name = 'Database Time Per Sec'
+AND group_id = 2
+AND rownum = 1
+"
+
+[[metric]]
+context = "oracle_cpu_usage_per_sec"
+metricsdesc = { value = "CPU usage per second" }
+request = "
+SELECT value AS value
+FROM v$sysmetric
+WHERE metric_name = 'CPU Usage Per Sec'
+AND group_id = 2
+AND rownum = 1
+"
+
+[[metric]]
+context = "oracle_logical_reads"
+metricsdesc = { value = "Session logical reads" }
+request = "
+SELECT value AS value
+FROM v$sysstat
+WHERE name = 'session logical reads'
+"
+
+[[metric]]
+context = "oracle_physical_reads"
+metricsdesc = { value = "Physical reads" }
+request = "
+SELECT value AS value
+FROM v$sysstat
+WHERE name = 'physical reads'
+"
+
+[[metric]]
+context = "oracle_top_sql_elapsed"
+labels = ["sql_id"]
+metricsdesc = { value = "Top SQL elapsed time" }
+request = "
+SELECT sql_id, elapsed_time AS value
+FROM (
+  SELECT sql_id, elapsed_time
+  FROM v$sql
+  WHERE sql_id IS NOT NULL
+  ORDER BY elapsed_time DESC
+)
+WHERE rownum <= 10
+"
+
+[[metric]]
+context = "oracle_top_sql_buffer_gets"
+labels = ["sql_id"]
+metricsdesc = { value = "Top SQL buffer gets" }
+request = "
+SELECT sql_id, buffer_gets AS value
+FROM (
+  SELECT sql_id, buffer_gets
+  FROM v$sql
+  WHERE sql_id IS NOT NULL
+  ORDER BY buffer_gets DESC
+)
+WHERE rownum <= 10
+"
