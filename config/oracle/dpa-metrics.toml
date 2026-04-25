@@ -240,3 +240,81 @@ WHERE status = 'ACTIVE'
 AND type = 'USER'
 AND last_call_et >= 300
 "
+
+[[metric]]
+context = "oracle_top_sql_cpu_time"
+labels = ["sql_id"]
+metricsdesc = { value = "Top SQL CPU time" }
+request = "
+SELECT sql_id, cpu_time AS value
+FROM (
+  SELECT sql_id, cpu_time
+  FROM v$sql
+  WHERE sql_id IS NOT NULL
+  ORDER BY cpu_time DESC
+)
+WHERE rownum <= 10
+"
+
+[[metric]]
+context = "oracle_top_sql_parse_calls"
+labels = ["sql_id"]
+metricsdesc = { value = "Top SQL parse calls" }
+request = "
+SELECT sql_id, parse_calls AS value
+FROM (
+  SELECT sql_id, parse_calls
+  FROM v$sql
+  WHERE sql_id IS NOT NULL
+  ORDER BY parse_calls DESC
+)
+WHERE rownum <= 10
+"
+
+[[metric]]
+context = "oracle_top_sql_rows_processed"
+labels = ["sql_id"]
+metricsdesc = { value = "Top SQL rows processed" }
+request = "
+SELECT sql_id, rows_processed AS value
+FROM (
+  SELECT sql_id, rows_processed
+  FROM v$sql
+  WHERE sql_id IS NOT NULL
+  ORDER BY rows_processed DESC
+)
+WHERE rownum <= 10
+"
+
+[[metric]]
+context = "oracle_top_sql_version_count"
+labels = ["sql_id"]
+metricsdesc = { value = "Top SQL version count" }
+request = "
+SELECT sql_id, version_count AS value
+FROM (
+  SELECT sql_id, version_count
+  FROM v$sqlarea
+  WHERE sql_id IS NOT NULL
+  ORDER BY version_count DESC
+)
+WHERE rownum <= 10
+"
+
+[[metric]]
+context = "oracle_sql_plan_hash"
+labels = ["sql_id", "plan_hash_value"]
+metricsdesc = { value = "SQL plan hash value mapping" }
+request = "
+SELECT sql_id,
+       TO_CHAR(plan_hash_value) AS plan_hash_value,
+       1 AS value
+FROM (
+  SELECT sql_id, plan_hash_value
+  FROM v$sql
+  WHERE sql_id IS NOT NULL
+  AND plan_hash_value IS NOT NULL
+  ORDER BY last_active_time DESC
+)
+WHERE rownum <= 50
+"
