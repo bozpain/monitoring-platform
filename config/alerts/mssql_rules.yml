@@ -1,0 +1,205 @@
+groups:
+  - name: mssql.rules
+    interval: 30s
+    rules:
+
+      # =========================
+      # AVAILABILITY
+      # =========================
+      - alert: MSSQLExporterDown
+        expr: up{job="mssql"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+          db_type: mssql
+        annotations:
+          summary: "MSSQL exporter down on {{ $labels.instance }}"
+          description: "Exporter not reachable. App={{ $labels.app }}, Tier={{ $labels.tier }}"
+
+      - alert: MSSQLDatabaseDown
+        expr: mssql_up{job="mssql"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+          db_type: mssql
+        annotations:
+          summary: "MSSQL database down on {{ $labels.instance }}"
+          description: "Database not responding"
+
+      - alert: MSSQLDatabaseNotOnline
+        expr: mssql_database_state{job="mssql"} != 0
+        for: 3m
+        labels:
+          severity: critical
+          category: availability
+          db_type: mssql
+        annotations:
+          summary: "Database not ONLINE on {{ $labels.instance }}"
+          description: "Database {{ $labels.database }} state is not ONLINE"
+
+      # =========================
+      # CAPACITY
+      # =========================
+      - alert: MSSQLDataFileHighUsage
+        expr: mssql_database_data_used_percent{job="mssql"} >= 85
+        for: 5m
+        labels:
+          severity: warning
+          category: capacity
+          db_type: mssql
+        annotations:
+          summary: "Data file high usage on {{ $labels.instance }}"
+          description: "{{ $labels.database }} usage {{ $value }}%"
+
+      - alert: MSSQLDataFileCriticalUsage
+        expr: mssql_database_data_used_percent{job="mssql"} >= 95
+        for: 5m
+        labels:
+          severity: critical
+          category: capacity
+          db_type: mssql
+        annotations:
+          summary: "Data file critical usage on {{ $labels.instance }}"
+          description: "{{ $labels.database }} usage {{ $value }}%"
+
+      - alert: MSSQLLogFileHighUsage
+        expr: mssql_database_log_used_percent{job="mssql"} >= 80
+        for: 5m
+        labels:
+          severity: warning
+          category: capacity
+          db_type: mssql
+        annotations:
+          summary: "Log file high usage on {{ $labels.instance }}"
+          description: "{{ $labels.database }} log usage {{ $value }}%"
+
+      - alert: MSSQLLogFileCriticalUsage
+        expr: mssql_database_log_used_percent{job="mssql"} >= 90
+        for: 5m
+        labels:
+          severity: critical
+          category: capacity
+          db_type: mssql
+        annotations:
+          summary: "Log file critical usage on {{ $labels.instance }}"
+          description: "{{ $labels.database }} log usage {{ $value }}%"
+
+      - alert: MSSQLTempDBHighUsage
+        expr: |
+          (
+            sum by (instance) (mssql_tempdb_used_bytes{job="mssql"})
+            /
+            clamp_min(sum by (instance) (mssql_tempdb_size_bytes{job="mssql"}), 1)
+          ) >= 0.80
+        for: 5m
+        labels:
+          severity: warning
+          category: capacity
+          db_type: mssql
+        annotations:
+          summary: "TempDB high usage on {{ $labels.instance }}"
+          description: "TempDB usage > 80%"
+
+      - alert: MSSQLTempDBCriticalUsage
+        expr: |
+          (
+            sum by (instance) (mssql_tempdb_used_bytes{job="mssql"})
+            /
+            clamp_min(sum by (instance) (mssql_tempdb_size_bytes{job="mssql"}), 1)
+          ) >= 0.90
+        for: 5m
+        labels:
+          severity: critical
+          category: capacity
+          db_type: mssql
+        annotations:
+          summary: "TempDB critical usage on {{ $labels.instance }}"
+          description: "TempDB usage > 90%"
+
+      # =========================
+      # PERFORMANCE
+      # =========================
+      - alert: MSSQLBlockingSession
+        expr: mssql_blocked_sessions{job="mssql"} > 0
+        for: 3m
+        labels:
+          severity: warning
+          category: blocking
+          db_type: mssql
+        annotations:
+          summary: "Blocking session detected on {{ $labels.instance }}"
+          description: "Blocked sessions > 0"
+
+      - alert: MSSQLSevereBlocking
+        expr: mssql_blocked_sessions{job="mssql"} >= 5
+        for: 3m
+        labels:
+          severity: critical
+          category: blocking
+          db_type: mssql
+        annotations:
+          summary: "Severe blocking on {{ $labels.instance }}"
+          description: "Blocked sessions >= 5"
+
+      - alert: MSSQLDeadlockDetected
+        expr: increase(mssql_deadlocks_total{job="mssql"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          category: locking
+          db_type: mssql
+        annotations:
+          summary: "Deadlock detected on {{ $labels.instance }}"
+          description: "Deadlock occurred in last 5 minutes"
+
+      - alert: MSSQLLongRunningQuery
+        expr: mssql_long_running_requests{job="mssql"} > 0
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+          db_type: mssql
+        annotations:
+          summary: "Long running query on {{ $labels.instance }}"
+          description: "Query running > 5 minutes"
+
+      # =========================
+      # MEMORY
+      # =========================
+      - alert: MSSQLMemoryPressure
+        expr: mssql_memory_grants_pending{job="mssql"} > 0
+        for: 5m
+        labels:
+          severity: warning
+          category: memory
+          db_type: mssql
+        annotations:
+          summary: "Memory pressure on {{ $labels.instance }}"
+          description: "Memory grants pending detected"
+
+      - alert: MSSQLLowBufferCacheHitRatio
+        expr: mssql_buffer_cache_hit_ratio{job="mssql"} < 0.90
+        for: 10m
+        labels:
+          severity: warning
+          category: memory
+          db_type: mssql
+        annotations:
+          summary: "Low buffer cache hit ratio on {{ $labels.instance }}"
+          description: "Buffer cache hit ratio < 90%"
+
+      # =========================
+      # CONNECTION
+      # =========================
+      - alert: MSSQLConnectionHigh
+        expr: mssql_connections{job="mssql"} > 500
+        for: 5m
+        labels:
+          severity: warning
+          category: connection
+          db_type: mssql
+        annotations:
+          summary: "High connections on {{ $labels.instance }}"
+          description: "Connections > 500"

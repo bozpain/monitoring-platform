@@ -9,8 +9,12 @@ PROM_DIR="$BASE_DIR/prometheus"
 BIN_DIR="$PROM_DIR/bin"
 CONF_DIR="$PROM_DIR/conf"
 ALERT_DIR="$CONF_DIR/alerts"
+TARGETS_DIR="$BASE_DIR/config/targets"
 DATA_DIR="$BASE_DIR/data/prometheus"
 LOG_DIR="$BASE_DIR/logs/prometheus"
+
+CONFIG_SRC="./config/prometheus.yml"
+TARGETS_SRC="./config/targets"
 
 SERVICE_SRC="./systemd/prometheus.service"
 SERVICE_DST="/etc/systemd/system/prometheus.service"
@@ -35,9 +39,22 @@ if [ -z "$PROM_TAR" ]; then
   exit 1
 fi
 
-mkdir -p "$BIN_DIR" "$CONF_DIR" "$ALERT_DIR" "$DATA_DIR" "$LOG_DIR"
+if [ ! -f "$CONFIG_SRC" ]; then
+  echo "[ERROR] Prometheus config not found: $CONFIG_SRC"
+  exit 1
+fi
+
+echo "[INFO] Preparing directories..."
+
+mkdir -p "$BIN_DIR"
+mkdir -p "$CONF_DIR"
+mkdir -p "$ALERT_DIR"
+mkdir -p "$TARGETS_DIR"
+mkdir -p "$DATA_DIR"
+mkdir -p "$LOG_DIR"
 
 echo "[INFO] Extracting: $PROM_TAR"
+
 TMP_DIR=$(mktemp -d)
 tar -xzf "$PROM_TAR" -C "$TMP_DIR"
 
@@ -54,20 +71,44 @@ cp "$PROM_EXTRACT_DIR/promtool" "$BIN_DIR/"
 
 rm -rf "$TMP_DIR"
 
+chmod +x "$BIN_DIR/prometheus" "$BIN_DIR/promtool"
+
 echo "[INFO] Installing Prometheus config..."
-cp ./config/prometheus.yml "$CONF_DIR/prometheus.yml"
+
+if [ -f "$CONF_DIR/prometheus.yml" ]; then
+  cp "$CONF_DIR/prometheus.yml" "$CONF_DIR/prometheus.yml.bak.$(date +%Y%m%d_%H%M%S)"
+fi
+
+cp "$CONFIG_SRC" "$CONF_DIR/prometheus.yml"
+
+echo "[INFO] Installing Prometheus file_sd targets..."
+
+if [ -d "$TARGETS_SRC" ]; then
+  rm -f "$TARGETS_DIR"/*.yml
+  cp "$TARGETS_SRC"/*.yml "$TARGETS_DIR"/
+else
+  echo "[ERROR] Prometheus targets directory not found: $TARGETS_SRC"
+  exit 1
+fi
 
 echo "[INFO] Installing alert rules..."
+
 if [ -d ./config/alerts ]; then
+  rm -f "$ALERT_DIR"/*.yml
   cp ./config/alerts/*.yml "$ALERT_DIR/" 2>/dev/null || true
 else
   echo "[WARN] ./config/alerts not found, skipping alert rules"
 fi
 
-chmod +x "$BIN_DIR/prometheus" "$BIN_DIR/promtool"
-chown -R monitoring:monitoring "$PROM_DIR" "$DATA_DIR" "$LOG_DIR"
+echo "[INFO] Setting ownership..."
+
+chown -R monitoring:monitoring "$PROM_DIR"
+chown -R monitoring:monitoring "$BASE_DIR/config"
+chown -R monitoring:monitoring "$DATA_DIR"
+chown -R monitoring:monitoring "$LOG_DIR"
 
 echo "[INFO] Validating Prometheus config..."
+
 "$BIN_DIR/promtool" check config "$CONF_DIR/prometheus.yml"
 
 if [ ! -f "$SERVICE_SRC" ]; then
@@ -76,6 +117,7 @@ if [ ! -f "$SERVICE_SRC" ]; then
 fi
 
 echo "[INFO] Installing systemd service..."
+
 cp "$SERVICE_SRC" "$SERVICE_DST"
 
 systemctl daemon-reload
@@ -86,6 +128,14 @@ echo "[INFO] Checking service..."
 systemctl status prometheus --no-pager
 
 echo "[INFO] Testing endpoint..."
-curl -s http://localhost:9090/-/ready >/dev/null
+
+if curl -fsS http://localhost:9090/-/ready >/dev/null; then
+  echo "[INFO] Prometheus endpoint OK"
+else
+  echo "[WARN] Prometheus endpoint test failed. Check: journalctl -u prometheus -f"
+fi
 
 echo "[DONE] Prometheus installed successfully"
+echo "[INFO] Prometheus config: $CONF_DIR/prometheus.yml"
+echo "[INFO] Prometheus targets: $TARGETS_DIR"
+echo "[INFO] Prometheus alerts: $ALERT_DIR"

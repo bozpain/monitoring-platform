@@ -1,7 +1,12 @@
 - targets:
     - "10.243.176.250:9100"
-    - "10.243.176.251:9100"
-    - "10.243.176.252:9100"
   labels:
     service: "node"
-    environment: "non-prod"
+    environment: "development"
+    site: "development"
+    team: "dba"
+    role: "infrastructure"
+    db_type: "none"
+    app: "shared-infra"
+    tier: "shared"
+    owner: "infra-team"

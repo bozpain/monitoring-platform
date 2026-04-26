@@ -1,0 +1,156 @@
+groups:
+  - name: node.rules
+    interval: 30s
+    rules:
+
+      # =========================
+      # AVAILABILITY
+      # =========================
+      - alert: NodeExporterDown
+        expr: up{job="node"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Node exporter down on {{ $labels.instance }}"
+          description: "Node exporter not reachable"
+
+      # =========================
+      # CPU
+      # =========================
+      - alert: NodeHighCPUUsage
+        expr: (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle", job="node"}[5m]))) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          category: cpu
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage > 85%"
+
+      - alert: NodeCriticalCPUUsage
+        expr: (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle", job="node"}[5m]))) > 0.95
+        for: 5m
+        labels:
+          severity: critical
+          category: cpu
+        annotations:
+          summary: "Critical CPU usage on {{ $labels.instance }}"
+          description: "CPU usage > 95%"
+
+      # =========================
+      # MEMORY
+      # =========================
+      - alert: NodeHighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes{job="node"} / node_memory_MemTotal_bytes{job="node"})) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          category: memory
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage > 85%"
+
+      - alert: NodeCriticalMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes{job="node"} / node_memory_MemTotal_bytes{job="node"})) > 0.95
+        for: 5m
+        labels:
+          severity: critical
+          category: memory
+        annotations:
+          summary: "Critical memory usage on {{ $labels.instance }}"
+          description: "Memory usage > 95%"
+
+      # =========================
+      # DISK (FILESYSTEM)
+      # =========================
+      - alert: NodeDiskHighUsage
+        expr: |
+          (1 - (
+            node_filesystem_avail_bytes{job="node", fstype!~"tmpfs|overlay"}
+            /
+            node_filesystem_size_bytes{job="node", fstype!~"tmpfs|overlay"}
+          )) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          category: disk
+        annotations:
+          summary: "Disk usage high on {{ $labels.instance }}"
+          description: "Mount {{ $labels.mountpoint }} usage > 85%"
+
+      - alert: NodeDiskCriticalUsage
+        expr: |
+          (1 - (
+            node_filesystem_avail_bytes{job="node", fstype!~"tmpfs|overlay"}
+            /
+            node_filesystem_size_bytes{job="node", fstype!~"tmpfs|overlay"}
+          )) > 0.95
+        for: 5m
+        labels:
+          severity: critical
+          category: disk
+        annotations:
+          summary: "Disk usage critical on {{ $labels.instance }}"
+          description: "Mount {{ $labels.mountpoint }} usage > 95%"
+
+      # =========================
+      # INODE
+      # =========================
+      - alert: NodeInodeUsageHigh
+        expr: |
+          (1 - (
+            node_filesystem_files_free{job="node", fstype!~"tmpfs|overlay"}
+            /
+            node_filesystem_files{job="node", fstype!~"tmpfs|overlay"}
+          )) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          category: disk
+        annotations:
+          summary: "Inode usage high on {{ $labels.instance }}"
+          description: "Mount {{ $labels.mountpoint }} inode usage > 85%"
+
+      # =========================
+      # LOAD
+      # =========================
+      - alert: NodeHighLoad
+        expr: node_load1{job="node"} > (count by (instance)(node_cpu_seconds_total{job="node", mode="system"}))
+        for: 5m
+        labels:
+          severity: warning
+          category: load
+        annotations:
+          summary: "High load on {{ $labels.instance }}"
+          description: "Load average higher than CPU count"
+
+      # =========================
+      # NETWORK
+      # =========================
+      - alert: NodeNetworkHighErrorRate
+        expr: |
+          rate(node_network_receive_errs_total{job="node"}[5m]) > 10
+          or
+          rate(node_network_transmit_errs_total{job="node"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: "Network error rate high on {{ $labels.instance }}"
+          description: "High network errors detected"
+
+      # =========================
+      # IO
+      # =========================
+      - alert: NodeHighDiskIOTime
+        expr: rate(node_disk_io_time_seconds_total{job="node"}[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          category: io
+        annotations:
+          summary: "Disk IO saturation on {{ $labels.instance }}"
+          description: "Disk IO time > 80%"

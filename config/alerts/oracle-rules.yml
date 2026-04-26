@@ -1,0 +1,162 @@
+groups:
+  - name: oracle.rules
+    interval: 30s
+    rules:
+
+      # =========================
+      # AVAILABILITY
+      # =========================
+      - alert: OracleExporterDown
+        expr: up{job="oracle"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+          db_type: oracle
+        annotations:
+          summary: "Oracle exporter down on {{ $labels.instance }}"
+          description: "Exporter not reachable. App={{ $labels.app }}, Tier={{ $labels.tier }}"
+
+      - alert: OracleDatabaseDown
+        expr: oracle_up{job="oracle"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+          db_type: oracle
+        annotations:
+          summary: "Oracle database down on {{ $labels.instance }}"
+          description: "Database is not responding."
+
+      # =========================
+      # CAPACITY
+      # =========================
+      - alert: OracleTablespaceHighUsage
+        expr: oracle_tablespace_used_percent{job="oracle"} >= 85
+        for: 5m
+        labels:
+          severity: warning
+          category: capacity
+          db_type: oracle
+        annotations:
+          summary: "Tablespace high usage on {{ $labels.instance }}"
+          description: "{{ $labels.tablespace }} usage {{ $value }}%"
+
+      - alert: OracleTablespaceCriticalUsage
+        expr: oracle_tablespace_used_percent{job="oracle"} >= 95
+        for: 5m
+        labels:
+          severity: critical
+          category: capacity
+          db_type: oracle
+        annotations:
+          summary: "Tablespace critical usage on {{ $labels.instance }}"
+          description: "{{ $labels.tablespace }} usage {{ $value }}%"
+
+      - alert: OracleArchiveHighUsage
+        expr: oracle_archivelog_destination_used_percent{job="oracle"} >= 85
+        for: 5m
+        labels:
+          severity: warning
+          category: capacity
+          db_type: oracle
+        annotations:
+          summary: "Archive usage high on {{ $labels.instance }}"
+          description: "Archive usage {{ $value }}%"
+
+      - alert: OracleArchiveCriticalUsage
+        expr: oracle_archivelog_destination_used_percent{job="oracle"} >= 95
+        for: 5m
+        labels:
+          severity: critical
+          category: capacity
+          db_type: oracle
+        annotations:
+          summary: "Archive usage critical on {{ $labels.instance }}"
+          description: "Archive usage {{ $value }}%"
+
+      # =========================
+      # SESSION
+      # =========================
+      - alert: OracleSessionHigh
+        expr: oracle_sessions_used_percent{job="oracle"} >= 85
+        for: 5m
+        labels:
+          severity: warning
+          category: session
+          db_type: oracle
+        annotations:
+          summary: "Session usage high on {{ $labels.instance }}"
+          description: "Session usage {{ $value }}%"
+
+      - alert: OracleSessionCritical
+        expr: oracle_sessions_used_percent{job="oracle"} >= 95
+        for: 5m
+        labels:
+          severity: critical
+          category: session
+          db_type: oracle
+        annotations:
+          summary: "Session usage critical on {{ $labels.instance }}"
+          description: "Session usage {{ $value }}%"
+
+      # =========================
+      # PERFORMANCE / DPA
+      # =========================
+      - alert: OracleBlockingSession
+        expr: oracle_blocking_sessions{job="oracle"} > 0
+        for: 3m
+        labels:
+          severity: warning
+          category: blocking
+          db_type: oracle
+        annotations:
+          summary: "Blocking session detected on {{ $labels.instance }}"
+          description: "Blocking sessions > 0"
+
+      - alert: OracleSevereBlocking
+        expr: oracle_blocking_sessions{job="oracle"} >= 5
+        for: 3m
+        labels:
+          severity: critical
+          category: blocking
+          db_type: oracle
+        annotations:
+          summary: "Severe blocking on {{ $labels.instance }}"
+          description: "Blocking sessions >= 5"
+
+      - alert: OracleDeadlockDetected
+        expr: increase(oracle_deadlocks_total{job="oracle"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          category: locking
+          db_type: oracle
+        annotations:
+          summary: "Deadlock detected on {{ $labels.instance }}"
+          description: "Deadlock occurred in last 5 minutes"
+
+      - alert: OracleLongRunningQuery
+        expr: oracle_long_running_queries{job="oracle"} > 0
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+          db_type: oracle
+        annotations:
+          summary: "Long running query on {{ $labels.instance }}"
+          description: "Query running > 5 minutes"
+
+      # =========================
+      # CONNECTION / LOGIN
+      # =========================
+      - alert: OracleLoginFailureSpike
+        expr: increase(oracle_failed_logins_total{job="oracle"}[5m]) > 10
+        for: 0m
+        labels:
+          severity: warning
+          category: security
+          db_type: oracle
+        annotations:
+          summary: "Login failure spike on {{ $labels.instance }}"
+          description: "More than 10 failed logins in 5 minutes"

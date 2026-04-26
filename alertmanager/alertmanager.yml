@@ -1,0 +1,37 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: "default-dba"
+  group_by: ["alertname", "instance", "db_type", "app", "tier", "severity"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+  routes:
+    - matchers:
+        - severity="critical"
+      receiver: "critical-dba"
+      repeat_interval: 1h
+
+    - matchers:
+        - severity="warning"
+      receiver: "warning-dba"
+      repeat_interval: 4h
+
+receivers:
+  - name: "default-dba"
+    webhook_configs: []
+
+  - name: "critical-dba"
+    webhook_configs: []
+
+  - name: "warning-dba"
+    webhook_configs: []
+
+inhibit_rules:
+  - source_matchers:
+      - severity="critical"
+    target_matchers:
+      - severity="warning"
+    equal: ["alertname", "instance", "db_type"]

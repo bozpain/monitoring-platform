@@ -19,24 +19,6 @@ providers:
     options:
       path: /monitoring/grafana/dashboards/mssql
 
-  - name: 'PostgreSQL'
-    orgId: 1
-    folder: 'PostgreSQL'
-    type: file
-    disableDeletion: false
-    updateIntervalSeconds: 30
-    options:
-      path: /monitoring/grafana/dashboards/postgres
-
-  - name: 'MongoDB'
-    orgId: 1
-    folder: 'MongoDB'
-    type: file
-    disableDeletion: false
-    updateIntervalSeconds: 30
-    options:
-      path: /monitoring/grafana/dashboards/mongodb
-
   - name: 'Node'
     orgId: 1
     folder: 'Infrastructure'
