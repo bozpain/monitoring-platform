@@ -4,10 +4,6 @@
   Centralized observability for databases and infrastructure — scalable, lightweight, and fully open-source
 </p>
 
-<p align="center">
-  <img src="docs/architecture.png" width="850"/>
-</p>
-
 ---
 
 ## ✨ Overview
