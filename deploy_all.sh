@@ -80,6 +80,7 @@ run_step "./04_install_node_exporter.sh"
 run_step "./07_install_oracle_exporter.sh"
 run_step "./08_install_mssql_exporter.sh"
 run_step "./05_install_grafana.sh"
+run_step "./10_health_check.sh"
 
 echo ""
 echo "======================================="
@@ -96,3 +97,15 @@ echo "- Check Prometheus targets: http://VM_IP:9090/targets"
 echo "- Check Prometheus alerts: http://VM_IP:9090/alerts"
 echo "- Check Alertmanager: http://VM_IP:9093"
 echo "- Open Grafana: http://VM_IP:3000"
+
+echo ""
+echo "======================================="
+echo "[INFO] Final Validation URLs"
+echo "======================================="
+
+IP=$(hostname -I | awk '{print $1}')
+
+echo "Prometheus   : http://$IP:9090"
+echo "Grafana      : http://$IP:3000"
+echo "Alertmanager : http://$IP:9093"
+echo "Targets      : http://$IP:9090/targets"
