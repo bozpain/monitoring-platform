@@ -20,8 +20,10 @@ scrape_configs:
       - targets: ["10.10.10.10:9090"]
 
   - job_name: "node"
-    static_configs:
-      - targets: ["10.10.10.10:9100"]
+    file_sd_configs:
+      - files:
+          - /monitoring/config/targets/node_targets.yml
+        refresh_interval: 30s
 
   - job_name: "oracle"
     static_configs:

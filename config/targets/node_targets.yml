@@ -1,0 +1,7 @@
+- targets:
+    - "10.243.176.250:9100"
+    - "10.243.176.251:9100"
+    - "10.243.176.252:9100"
+  labels:
+    service: "node"
+    environment: "non-prod"
