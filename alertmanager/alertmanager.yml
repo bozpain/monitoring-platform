@@ -1,8 +1,14 @@
 global:
   resolve_timeout: 5m
 
+  smtp_smarthost: "smtp.company.local:587"
+  smtp_from: "db-monitoring@company.local"
+  smtp_auth_username: "db-monitoring@company.local"
+  smtp_auth_password: "CHANGE_ME"
+  smtp_require_tls: true
+
 route:
-  receiver: "default-dba"
+  receiver: "dba-email"
   group_by: ["alertname", "instance", "db_type", "app", "tier", "severity"]
   group_wait: 30s
   group_interval: 5m
@@ -11,23 +17,33 @@ route:
   routes:
     - matchers:
         - severity="critical"
-      receiver: "critical-dba"
+      receiver: "dba-critical-email"
       repeat_interval: 1h
 
     - matchers:
         - severity="warning"
-      receiver: "warning-dba"
+      receiver: "dba-warning-email"
       repeat_interval: 4h
 
 receivers:
-  - name: "default-dba"
-    webhook_configs: []
+  - name: "dba-email"
+    email_configs:
+      - to: "dba-team@company.local"
+        send_resolved: true
 
-  - name: "critical-dba"
-    webhook_configs: []
+  - name: "dba-critical-email"
+    email_configs:
+      - to: "dba-team@company.local"
+        send_resolved: true
+        headers:
+          subject: "[CRITICAL] {{ .CommonLabels.alertname }} - {{ .CommonLabels.instance }}"
 
-  - name: "warning-dba"
-    webhook_configs: []
+  - name: "dba-warning-email"
+    email_configs:
+      - to: "dba-team@company.local"
+        send_resolved: true
+        headers:
+          subject: "[WARNING] {{ .CommonLabels.alertname }} - {{ .CommonLabels.instance }}"
 
 inhibit_rules:
   - source_matchers:
