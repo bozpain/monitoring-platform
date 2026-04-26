@@ -1,255 +1,253 @@
-# deployment_plan.md
-
-## Database Monitoring Platform Deployment Plan
+# Database Monitoring Platform - Deployment Plan
 
 ---
 
-## 1. Overview
+## Overview
 
-Deployment ini membangun platform monitoring database berbasis:
+Platform monitoring database berbasis:
 
-- Prometheus (metrics scraping & alert rules)
+- Prometheus (metrics collection)
 - VictoriaMetrics (metrics storage)
-- Grafana (visualization)
-- Alertmanager (alert notification via SMTP email)
-- Exporters:
-  - Oracle Exporter
-  - MSSQL Exporter
-  - Node Exporter
+- Grafana (dashboard visualization)
+- Alertmanager (alerting)
+- Exporters: Oracle, MSSQL, Node
 
 Target:
-
-- Scalable hingga ratusan server / database
-- 100% free stack
-- Offline-ready (no internet dependency)
-- Fokus environment development / non-production
-- Clean, modular, enterprise-style observability platform
+- 100% free
+- Offline-ready
+- Scalable (100–1000 DB)
+- Fokus non-production (VIT / SIT / UAT / PT)
 
 ---
 
-## 2. Directory Structure (Server)
+## Architecture
 
-/monitoring/
-├── prometheus/
-│ ├── bin/
-│ └── conf/
-│ └── alerts/
-├── victoriametrics/
-│ ├── bin/
-│ └── conf/
-├── grafana/
-│ ├── conf/
-│ └── dashboards/
-│ ├── oracle/
-│ ├── mssql/
-│ └── node/
-├── alertmanager/
-│ ├── bin/
-│ └── conf/
-├── exporters/
-│ ├── oracle/
-│ ├── mssql/
-│ └── node/
-├── config/
-│ └── targets/
-├── data/
-│ ├── prometheus/
-│ ├── victoriametrics/
-│ └── alertmanager/
-├── logs/
-│ ├── prometheus/
-│ ├── victoriametrics/
-│ ├── grafana/
-│ ├── alertmanager/
-│ └── exporters/
-└── sources/
+Simpan gambar di:
+docs/images/architecture.png
 
 ---
 
-## 3. Deployment Order (MANDATORY)
+## VM Requirement
 
-01_prepare_vm.sh
-02_install_victoriametrics.sh
-06_install_alertmanager.sh
-03_install_prometheus.sh
-04_install_node_exporter.sh
-07_install_oracle_exporter.sh
-08_install_mssql_exporter.sh
-05_install_grafana.sh
+Start Small:
+CPU: 4 Core  
+RAM: 8–16 GB  
+Disk: 100 GB  
+OS: Oracle Linux 8  
 
 ---
 
-## 4. Standard Label (WAJIB)
+## STEP 1 — Prepare VM
 
-labels:
-service: "<node|oracle|mssql>"
-environment: "development"
-site: "development"
-team: "dba"
-role: "<infrastructure|database>"
-db_type: "<oracle|mssql|none>"
-app: "<application_name>"
-tier: "<vit|sit|uat|pt|shared>"
-owner: "<team_or_pic>"
+sudo -i  
+yum install -y wget tar unzip curl vim net-tools  
+useradd -m monitoring  
 
 ---
 
-## 5. Prometheus Configuration
+## STEP 2 — Create Directory
 
-/monitoring/prometheus/conf/prometheus.yml
+mkdir -p /monitoring && cd /monitoring
+
+mkdir -p prometheus/bin prometheus/conf/alerts victoriametrics/bin victoriametrics/conf grafana/conf grafana/dashboards/oracle grafana/dashboards/mssql grafana/dashboards/node alertmanager/bin alertmanager/conf exporters/oracle exporters/mssql exporters/node config/targets data/prometheus data/victoriametrics data/alertmanager logs/prometheus logs/victoriametrics logs/grafana logs/alertmanager logs/exporters sources/tar sources/rpm sources/checksum
+
+chown -R monitoring:monitoring /monitoring  
+chmod -R 755 /monitoring  
+
+---
+
+## STEP 3 — Upload Binary
+
+Upload ke:
+/monitoring/sources/
+
+Required:
+prometheus.tar.gz  
+victoriametrics.tar.gz  
+alertmanager.tar.gz  
+grafana.rpm  
+node_exporter.tar.gz  
+oracle_exporter.tar.gz  
+mssql_exporter.tar.gz  
+
+---
+
+## STEP 4 — Install VictoriaMetrics
+
+cd /monitoring/sources/tar  
+tar -xvf victoriametrics*.tar.gz  
+
+cp victoria-metrics-prod /monitoring/victoriametrics/bin/  
+chmod +x /monitoring/victoriametrics/bin/*  
+
+Buat service:
+vi /etc/systemd/system/victoriametrics.service
+
+Isi:
+
+[Unit]
+Description=VictoriaMetrics
+After=network.target
+
+[Service]
+User=monitoring
+ExecStart=/monitoring/victoriametrics/bin/victoria-metrics-prod -storageDataPath=/monitoring/data/victoriametrics -httpListenAddr=:8428
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+systemctl daemon-reload  
+systemctl enable --now victoriametrics  
+
+---
+
+## STEP 5 — Install Prometheus
+
+cd /monitoring/sources/tar  
+tar -xvf prometheus*.tar.gz  
+
+cp prometheus promtool /monitoring/prometheus/bin/  
+chmod +x /monitoring/prometheus/bin/*  
+
+Config:
+vi /monitoring/prometheus/conf/prometheus.yml
+
+Isi:
 
 global:
-scrape_interval: 30s
-evaluation_interval: 30s
-
-rule_files:
-
-- /monitoring/prometheus/conf/alerts/\*.yml
-
-alerting:
-alertmanagers: - static_configs: - targets: - "localhost:9093"
+  scrape_interval: 30s
 
 scrape_configs:
-
-- job_name: "node"
+- job_name: node
   file_sd_configs:
   - files:
     - /monitoring/config/targets/node_targets.yml
 
-- job_name: "oracle"
+- job_name: oracle
   file_sd_configs:
   - files:
     - /monitoring/config/targets/oracle_targets.yml
 
-- job_name: "mssql"
+- job_name: mssql
   file_sd_configs:
   - files:
     - /monitoring/config/targets/mssql_targets.yml
 
----
+Service:
+vi /etc/systemd/system/prometheus.service
 
-## 6. Target Management (file_sd)
-
-/monitoring/config/targets/
-
-node_targets.yml
-oracle_targets.yml
-mssql_targets.yml
+systemctl enable --now prometheus  
 
 ---
 
-## 7. Grafana Auto Provisioning
+## STEP 6 — Install Alertmanager
 
-/etc/grafana/provisioning/
+cd /monitoring/sources/tar  
+tar -xvf alertmanager*.tar.gz  
 
-datasources:
+cp alertmanager /monitoring/alertmanager/bin/  
+chmod +x /monitoring/alertmanager/bin/*  
 
-- prometheus.yml
-
-dashboards:
-
-- dashboards.yml
+systemctl enable --now alertmanager  
 
 ---
 
-## 8. Dashboards
+## STEP 7 — Install Grafana
 
-Oracle:
+cd /monitoring/sources/rpm  
+yum install -y grafana*.rpm  
 
-- oracle_overview.json
-- oracle_performance_dpa.json
-- oracle_sessions_blocking.json
-- oracle_sql_activity.json
-- oracle_tablespace_capacity.json
-
-MSSQL:
-
-- mssql_overview.json
-- mssql_performance_dpa.json
-- mssql_sessions_blocking.json
-- mssql_capacity.json
-
-Node:
-
-- node_overview.json
-- node_capacity.json
-- node_io_deep_dive.json
-- node_network.json
+systemctl enable --now grafana-server  
 
 ---
 
-## 9. Alert Rules
+## STEP 8 — Install Node Exporter
 
-/monitoring/prometheus/conf/alerts/
+cd /monitoring/sources/tar  
+tar -xvf node_exporter*.tar.gz  
 
-oracle_rules.yml
-mssql_rules.yml
-node_rules.yml
+cp node_exporter /monitoring/exporters/node/  
+chmod +x /monitoring/exporters/node/node_exporter  
 
----
-
-## 10. Alertmanager (SMTP)
-
-/monitoring/alertmanager/conf/alertmanager.yml
-
-global:
-smtp_smarthost: "smtp.company.local:587"
-smtp_from: "db-monitoring@company.local"
-smtp_auth_username: "db-monitoring@company.local"
-smtp_auth_password: "CHANGE_ME"
-
-route:
-receiver: "dba-email"
-
-receivers:
-
-- name: "dba-email"
-  email_configs:
-  - to: "dba-team@company.local"
+systemctl enable --now node_exporter  
 
 ---
 
-## 11. Service Management
+## STEP 9 — Install Oracle Exporter
 
-systemctl restart victoriametrics
-systemctl restart alertmanager
-systemctl restart prometheus
-systemctl restart grafana-server
-systemctl restart node_exporter
-systemctl restart oracle_exporter
-systemctl restart mssql_exporter
+cd /monitoring/sources/tar  
+tar -xvf oracle_exporter*.tar.gz  
 
----
+cp exporter /monitoring/exporters/oracle/  
 
-## 12. Health Check
-
-Prometheus:
-http://<server>:9090/targets
-
-Alertmanager:
-http://<server>:9093
-
-Grafana:
-http://<server>:3000
+systemctl enable --now oracle_exporter  
 
 ---
 
-## 13. Troubleshooting
+## STEP 10 — Install MSSQL Exporter
 
-journalctl -u prometheus -f
-journalctl -u alertmanager -f
-journalctl -u grafana-server -f
+cd /monitoring/sources/tar  
+tar -xvf mssql_exporter*.tar.gz  
 
----
+cp exporter /monitoring/exporters/mssql/  
 
-## 14. Scaling Strategy
-
-Manual:
-/monitoring/config/targets/
-
-Future:
-inventory.csv → generate_targets → targets.yml
+systemctl enable --now mssql_exporter  
 
 ---
 
-## END
+## STEP 11 — Register Targets
+
+vi /monitoring/config/targets/node_targets.yml
+
+- targets:
+  - "10.10.10.10:9100"
+  labels:
+    service: "node"
+    environment: "sit"
+
+systemctl restart prometheus  
+
+---
+
+## STEP 12 — Validation
+
+Prometheus: http://IP:9090  
+Grafana: http://IP:3000  
+Alertmanager: http://IP:9093  
+
+Check:
+http://IP:9090/targets
+
+---
+
+## Troubleshooting
+
+journalctl -u prometheus -f  
+journalctl -u grafana-server -f  
+journalctl -u alertmanager -f  
+
+---
+
+## Scaling
+
+Edit:
+/monitoring/config/targets/*.yml  
+
+Restart:
+systemctl restart prometheus  
+
+---
+
+## Final Checklist
+
+- Prometheus running  
+- Grafana login OK  
+- Targets UP  
+- Exporter running  
+- Dashboard tampil  
+- Alertmanager aktif  
+
+---
+
+END
