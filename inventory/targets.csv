@@ -1,0 +1,4 @@
+host,ip,node,oracle,mssql,app,tier,owner
+db-vm-01,10.243.176.250,yes,yes,no,core-banking,sit,team-core
+db-vm-02,10.243.176.251,yes,no,yes,reporting,uat,team-data
+db-vm-03,10.243.176.252,yes,yes,yes,etl,sit,team-data

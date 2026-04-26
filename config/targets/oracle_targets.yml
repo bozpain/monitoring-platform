@@ -10,3 +10,17 @@
     app: "core-banking"
     tier: "sit"
     owner: "team-core"
+
+- targets:
+    - "10.243.176.252:9161"
+  labels:
+    service: "oracle"
+    environment: "development"
+    site: "development"
+    team: "dba"
+    role: "database"
+    db_type: "oracle"
+    app: "etl"
+    tier: "sit"
+    owner: "team-data"
+

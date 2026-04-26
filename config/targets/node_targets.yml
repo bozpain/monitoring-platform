@@ -7,6 +7,33 @@
     team: "dba"
     role: "infrastructure"
     db_type: "none"
-    app: "shared-infra"
-    tier: "shared"
-    owner: "infra-team"
+    app: "core-banking"
+    tier: "sit"
+    owner: "team-core"
+
+- targets:
+    - "10.243.176.251:9100"
+  labels:
+    service: "node"
+    environment: "development"
+    site: "development"
+    team: "dba"
+    role: "infrastructure"
+    db_type: "none"
+    app: "reporting"
+    tier: "uat"
+    owner: "team-data"
+
+- targets:
+    - "10.243.176.252:9100"
+  labels:
+    service: "node"
+    environment: "development"
+    site: "development"
+    team: "dba"
+    role: "infrastructure"
+    db_type: "none"
+    app: "etl"
+    tier: "sit"
+    owner: "team-data"
+

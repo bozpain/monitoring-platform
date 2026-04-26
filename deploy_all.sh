@@ -28,6 +28,50 @@ run_step() {
   "$step"
 }
 
+validate_generated_targets() {
+  echo ""
+  echo "======================================="
+  echo "[STEP] Validate Pre-Generated Targets"
+  echo "======================================="
+
+  local target_dir="./config/targets"
+
+  if [ ! -d "$target_dir" ]; then
+    echo "[ERROR] Target directory not found: $target_dir"
+    echo "[INFO] Generate targets from VS Code first:"
+    echo "       python scripts/generate_targets.py"
+    exit 1
+  fi
+
+  for file in node_targets.yml oracle_targets.yml mssql_targets.yml; do
+    if [ ! -f "$target_dir/$file" ]; then
+      echo "[ERROR] Missing target file: $target_dir/$file"
+      echo "[INFO] Generate targets from VS Code first:"
+      echo "       python scripts/generate_targets.py"
+      exit 1
+    fi
+  done
+
+  echo "[INFO] Target files found:"
+  ls -lah "$target_dir"
+
+  if [ ! -s "$target_dir/node_targets.yml" ]; then
+    echo "[WARN] node_targets.yml is empty"
+  fi
+
+  if [ ! -s "$target_dir/oracle_targets.yml" ]; then
+    echo "[WARN] oracle_targets.yml is empty"
+  fi
+
+  if [ ! -s "$target_dir/mssql_targets.yml" ]; then
+    echo "[WARN] mssql_targets.yml is empty"
+  fi
+
+  echo "[INFO] Using pre-generated targets from repo"
+}
+
+validate_generated_targets
+
 run_step "./01_prepare_vm.sh"
 run_step "./02_install_victoriametrics.sh"
 run_step "./06_install_alertmanager.sh"
@@ -44,8 +88,10 @@ echo "======================================="
 
 echo ""
 echo "Next steps:"
+echo "- Edit inventory in VS Code: inventory/targets.csv"
+echo "- Generate targets in VS Code: python scripts/generate_targets.py"
+echo "- Commit generated targets: config/targets/*.yml"
 echo "- Configure SMTP in: /monitoring/alertmanager/conf/alertmanager.yml"
-echo "- Configure targets in: /monitoring/config/targets/"
 echo "- Check Prometheus targets: http://VM_IP:9090/targets"
 echo "- Check Prometheus alerts: http://VM_IP:9090/alerts"
 echo "- Check Alertmanager: http://VM_IP:9093"
