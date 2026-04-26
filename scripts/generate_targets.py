@@ -1,6 +1,7 @@
 import csv
 import os
 import sys
+from collections import defaultdict
 
 INPUT_FILE = "inventory/targets.csv"
 OUTPUT_DIR = "config/targets"
@@ -9,94 +10,202 @@ NODE_FILE = os.path.join(OUTPUT_DIR, "node_targets.yml")
 ORACLE_FILE = os.path.join(OUTPUT_DIR, "oracle_targets.yml")
 MSSQL_FILE = os.path.join(OUTPUT_DIR, "mssql_targets.yml")
 
-REQUIRED_FIELDS = ["host", "ip", "node", "oracle", "mssql", "app", "tier", "owner"]
+REQUIRED_FIELDS = [
+    "host",
+    "ip",
+    "node",
+    "oracle",
+    "mssql",
+    "app",
+    "tier",
+    "owner",
+]
+
+VALID_YES_NO = {"yes", "no"}
+VALID_TIER = {"vit", "sit", "uat", "pt", "shared"}
 
 
-def fail(msg):
-    print(f"[ERROR] {msg}")
+def fail(message: str) -> None:
+    print(f"[ERROR] {message}")
     sys.exit(1)
 
 
-def validate_row(row, line_no):
+def normalize(value: str) -> str:
+    return value.strip().lower()
+
+
+def validate_row(row: dict, line_no: int) -> None:
     for field in REQUIRED_FIELDS:
-        if field not in row or not row[field].strip():
-            fail(f"Missing field '{field}' at line {line_no}")
+        if field not in row:
+            fail(f"Missing CSV column '{field}'")
+        if not row[field].strip():
+            fail(f"Empty value for '{field}' at line {line_no}")
 
-    if row["node"] not in ("yes", "no"):
-        fail(f"Invalid value for node at line {line_no}")
+    for field in ["node", "oracle", "mssql"]:
+        value = normalize(row[field])
+        if value not in VALID_YES_NO:
+            fail(f"Invalid value for '{field}' at line {line_no}: {row[field]}")
 
-    if row["oracle"] not in ("yes", "no"):
-        fail(f"Invalid value for oracle at line {line_no}")
-
-    if row["mssql"] not in ("yes", "no"):
-        fail(f"Invalid value for mssql at line {line_no}")
-
-
-def write_entry(file, ip, port, service, db_type, role, app, tier, owner):
-    file.write(f"""- targets:
-    - "{ip}:{port}"
-  labels:
-    service: "{service}"
-    environment: "development"
-    site: "development"
-    team: "dba"
-    role: "{role}"
-    db_type: "{db_type}"
-    app: "{app}"
-    tier: "{tier}"
-    owner: "{owner}"
-
-""")
+    tier = normalize(row["tier"])
+    if tier not in VALID_TIER:
+        fail(f"Invalid tier at line {line_no}: {row['tier']}")
 
 
-def main():
+def labels_key(
+    service: str,
+    role: str,
+    db_type: str,
+    app: str,
+    tier: str,
+    owner: str,
+) -> tuple:
+    return (
+        service,
+        "development",
+        "development",
+        "dba",
+        role,
+        db_type,
+        app,
+        tier,
+        owner,
+    )
+
+
+def write_grouped_targets(file_path: str, grouped_targets: dict) -> None:
+    with open(file_path, "w", encoding="utf-8", newline="\n") as f:
+        for labels, targets in grouped_targets.items():
+            (
+                service,
+                environment,
+                site,
+                team,
+                role,
+                db_type,
+                app,
+                tier,
+                owner,
+            ) = labels
+
+            f.write("- targets:\n")
+            for target in sorted(targets):
+                f.write(f'    - "{target}"\n')
+
+            f.write("  labels:\n")
+            f.write(f'    service: "{service}"\n')
+            f.write(f'    environment: "{environment}"\n')
+            f.write(f'    site: "{site}"\n')
+            f.write(f'    team: "{team}"\n')
+            f.write(f'    role: "{role}"\n')
+            f.write(f'    db_type: "{db_type}"\n')
+            f.write(f'    app: "{app}"\n')
+            f.write(f'    tier: "{tier}"\n')
+            f.write(f'    owner: "{owner}"\n\n')
+
+
+def main() -> None:
     if not os.path.exists(INPUT_FILE):
         fail(f"Input file not found: {INPUT_FILE}")
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    node_f = open(NODE_FILE, "w")
-    oracle_f = open(ORACLE_FILE, "w")
-    mssql_f = open(MSSQL_FILE, "w")
+    node_targets = defaultdict(list)
+    oracle_targets = defaultdict(list)
+    mssql_targets = defaultdict(list)
 
-    seen_ips = set()
+    seen_ip_service = set()
+    seen_host = set()
 
-    with open(INPUT_FILE, newline="") as csvfile:
+    with open(INPUT_FILE, newline="", encoding="utf-8-sig") as csvfile:
         reader = csv.DictReader(csvfile)
 
         if reader.fieldnames is None:
             fail("CSV header missing")
 
-        for i, row in enumerate(reader, start=2):
-            validate_row(row, i)
+        missing_columns = [field for field in REQUIRED_FIELDS if field not in reader.fieldnames]
+        if missing_columns:
+            fail(f"Missing required CSV columns: {', '.join(missing_columns)}")
 
+        for line_no, row in enumerate(reader, start=2):
+            validate_row(row, line_no)
+
+            host = row["host"].strip()
             ip = row["ip"].strip()
+            app = normalize(row["app"])
+            tier = normalize(row["tier"])
+            owner = normalize(row["owner"])
 
-            if ip in seen_ips:
-                fail(f"Duplicate IP detected: {ip}")
-            seen_ips.add(ip)
+            node = normalize(row["node"])
+            oracle = normalize(row["oracle"])
+            mssql = normalize(row["mssql"])
 
-            app = row["app"].strip()
-            tier = row["tier"].strip()
-            owner = row["owner"].strip()
+            if host in seen_host:
+                fail(f"Duplicate host detected at line {line_no}: {host}")
+            seen_host.add(host)
 
-            if row["node"] == "yes":
-                write_entry(node_f, ip, 9100, "node", "none", "infrastructure", app, tier, owner)
+            if node == "yes":
+                service = "node"
+                key = labels_key(
+                    service=service,
+                    role="infrastructure",
+                    db_type="none",
+                    app=app,
+                    tier=tier,
+                    owner=owner,
+                )
+                target = f"{ip}:9100"
 
-            if row["oracle"] == "yes":
-                write_entry(oracle_f, ip, 9161, "oracle", "oracle", "database", app, tier, owner)
+                if (service, target) in seen_ip_service:
+                    fail(f"Duplicate target detected: {target} for {service}")
 
-            if row["mssql"] == "yes":
-                write_entry(mssql_f, ip, 9399, "mssql", "mssql", "database", app, tier, owner)
+                seen_ip_service.add((service, target))
+                node_targets[key].append(target)
 
-    node_f.close()
-    oracle_f.close()
-    mssql_f.close()
+            if oracle == "yes":
+                service = "oracle"
+                key = labels_key(
+                    service=service,
+                    role="database",
+                    db_type="oracle",
+                    app=app,
+                    tier=tier,
+                    owner=owner,
+                )
+                target = f"{ip}:9161"
+
+                if (service, target) in seen_ip_service:
+                    fail(f"Duplicate target detected: {target} for {service}")
+
+                seen_ip_service.add((service, target))
+                oracle_targets[key].append(target)
+
+            if mssql == "yes":
+                service = "mssql"
+                key = labels_key(
+                    service=service,
+                    role="database",
+                    db_type="mssql",
+                    app=app,
+                    tier=tier,
+                    owner=owner,
+                )
+                target = f"{ip}:9399"
+
+                if (service, target) in seen_ip_service:
+                    fail(f"Duplicate target detected: {target} for {service}")
+
+                seen_ip_service.add((service, target))
+                mssql_targets[key].append(target)
+
+    write_grouped_targets(NODE_FILE, node_targets)
+    write_grouped_targets(ORACLE_FILE, oracle_targets)
+    write_grouped_targets(MSSQL_FILE, mssql_targets)
 
     print("[DONE] Targets generated successfully")
-    print(f"- {NODE_FILE}")
-    print(f"- {ORACLE_FILE}")
-    print(f"- {MSSQL_FILE}")
+    print(f"[INFO] Node groups   : {len(node_targets)}")
+    print(f"[INFO] Oracle groups : {len(oracle_targets)}")
+    print(f"[INFO] MSSQL groups  : {len(mssql_targets)}")
+    print(f"[INFO] Output: {OUTPUT_DIR}")
 
 
 if __name__ == "__main__":
