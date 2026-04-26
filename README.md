@@ -1,166 +1,171 @@
-# Monitoring Platform
-
-Lightweight, offline-ready database monitoring platform built with Prometheus, VictoriaMetrics, Grafana, Alertmanager, and database exporters.
-
----
-
-## Overview
-
-This platform is designed to:
-
-- Monitor operating system and databases (Oracle, MSSQL, PostgreSQL, MongoDB)
-- Run in restricted environments (no internet access)
-- Use a centralized metric storage (VictoriaMetrics)
-- Be fully deployable via scripts
-
----
-
-## Architecture
-
-```text
-Exporters
-  ├── Node Exporter
-  ├── Oracle Exporter
-  ├── MSSQL Exporter
-  ├── PostgreSQL Exporter
-  └── MongoDB Exporter
-        ↓
-Prometheus (scraper)
-        ↓ remote_write
-VictoriaMetrics (storage)
-        ↓
-Grafana (visualization)
-        ↓
-Alertmanager (alerting)
-```
-
----
-
-## Architecture Diagram
+# 🟦 Internal Database Observability Platform
 
 <p align="center">
-  <img src="docs/images/db-monitoring-architecture.png" width="900"/>
+  Centralized observability for databases and infrastructure — scalable, lightweight, and fully open-source
+</p>
+
+<p align="center">
+  <img src="docs/architecture.png" width="850"/>
 </p>
 
 ---
 
-## Key Components
+## ✨ Overview
 
-| Component       | Description               |
-| --------------- | ------------------------- |
-| Prometheus      | Metric scraper            |
-| VictoriaMetrics | Time-series database      |
-| Grafana         | Dashboard & visualization |
-| Alertmanager    | Alert routing             |
-| Exporters       | Metric collectors         |
+A centralized platform that provides full visibility across:
 
----
+- RDBMS Databases
+- NoSQL Databases
+- Infrastructure (VM / OS / Servers)
 
-## VM Directory Standard
-
-All monitoring components must follow this structure:
-
-```text
-/monitoring/
-├── prometheus/
-├── victoriametrics/
-├── grafana/
-├── alertmanager/
-├── exporters/
-├── data/
-├── logs/
-└── sources/
-```
+Designed to deliver real-time monitoring, intelligent alerting, and unified dashboards across all environments.
 
 ---
 
-## Deployment
+## 🚀 Key Capabilities
 
-This project supports:
+| Capability               | Description                                     |
+| ------------------------ | ----------------------------------------------- |
+| 🔍 Fleet Visibility      | Single-pane-of-glass monitoring for all systems |
+| 📊 Performance Insights  | Deep metrics for faster troubleshooting         |
+| 🧠 Smart Alerting        | Context-aware alerts (app + tier based)         |
+| ⚙️ Auto Discovery        | CSV-driven dynamic target generation            |
+| 📦 Scalable Architecture | Supports 500+ instances                         |
+| 🔒 Offline Ready         | No internet dependency                          |
 
-### One Command Deployment
+---
+
+## 🏗️ Architecture
+
+<p align="center">
+  <img src="docs/architecture.png" width="900"/>
+</p>
+
+### Flow
+
+1. Metrics collected from databases and servers
+2. Processed by Prometheus
+3. Stored in VictoriaMetrics
+4. Visualized via Grafana
+5. Alerts sent via Alertmanager (Email)
+
+---
+
+## 📊 Dashboards
+
+### 🧭 Fleet Overview
+
+- Total systems
+- Availability %
+- Active alerts
+- Down instances
+
+### 🗄️ Database Monitoring
+
+- Performance metrics
+- Session & blocking analysis
+- Capacity tracking
+
+### 🖥️ Infrastructure
+
+- CPU / Memory
+- Disk usage
+- Network / IO
+
+---
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/architecture.png" width="250"/>
+  <img src="docs/screenshots/fleet.png" width="250"/>
+  <img src="docs/screenshots/database.png" width="250"/>
+  <img src="docs/screenshots/infrastructure.png" width="250"/>
+</p>
+
+---
+
+## ⚙️ Deployment
 
 ```bash
-./deploy_all.sh
+sudo ./deploy_all.sh
 ```
 
-### Manual Deployment
+---
+
+## 📁 Inventory & Auto Discovery
+
+Manage targets:
 
 ```bash
-./01_prepare_vm.sh
-./02_install_victoriametrics.sh
-./03_install_prometheus.sh
-./04_install_node_exporter.sh
-./05_install_grafana.sh
-./06_install_alertmanager.sh
-./07_install_oracle_exporter.sh
+inventory/targets.csv
+```
+
+Generate configs:
+
+```bash
+python scripts/generate_targets.py
+```
+
+Output:
+
+```bash
+config/targets/
 ```
 
 ---
 
-## Deployment Guide
+## 🚨 Alerting
 
-For full step-by-step instructions (recommended for operators):
+- Centralized via Alertmanager
+- Email notifications (SMTP)
+- Context included:
+  - Application
+  - Tier (SIT / UAT)
+  - Severity
+  - Instance
 
-👉 See:
+### Example
 
-```text
-deployment_plan.md
+```
+[CRITICAL][CORE-BANKING][SIT] High Resource Usage
 ```
 
 ---
 
-## Data Flow
+## 📈 Scalability
 
-```text
-Exporter → Prometheus → VictoriaMetrics → Grafana
-                              ↓
-                        Alertmanager
-```
+- 500+ database instances
+- Multi-application environments
+- Cluster & distributed systems
 
 ---
 
-## Default Ports
+## 🧠 Business Value
 
-| Component       | Port |
-| --------------- | ---- |
-| Grafana         | 3000 |
-| Prometheus      | 9090 |
-| VictoriaMetrics | 8428 |
-| Alertmanager    | 9093 |
-| Node Exporter   | 9100 |
-| Oracle Exporter | 9161 |
+- Faster incident detection
+- Reduced downtime risk
+- Improved DBA productivity
+- Standardized monitoring
+- Better operational visibility
 
 ---
 
-## Notes
+## 🔮 Roadmap
 
-- Prometheus is used only for scraping (no long-term storage)
-- VictoriaMetrics is the primary storage backend
-- Grafana reads data from VictoriaMetrics (Prometheus-compatible API)
-- Oracle exporter requires manual configuration before activation
-
----
-
-## Git Policy
-
-Do NOT commit:
-
-- environment files (`*.env`)
-- binary files (`*.tar.gz`, `*.rpm`)
-- monitoring data (`/data`)
-- logs (`/logs`)
-- credentials / passwords
+- AI anomaly detection
+- Root cause analysis
+- Auto remediation
+- Multi-channel alerting
 
 ---
 
-## Status
+## 👨‍💻 Maintained by
 
-This project provides:
-
-- Full offline deployment capability
-- Modular architecture
-- Scalable monitoring foundation
-- Extendable for advanced database performance analysis (DPA-like)
+**DBA Team**
 
 ---
+
+<p align="center">
+  Built with open-source technologies • Designed for scale • Made for operations
+</p>

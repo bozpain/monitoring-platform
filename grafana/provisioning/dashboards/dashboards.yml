@@ -27,3 +27,12 @@ providers:
     updateIntervalSeconds: 30
     options:
       path: /monitoring/grafana/dashboards/node
+
+  - name: 'Fleet'
+    orgId: 1
+    folder: 'Fleet'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /monitoring/grafana/dashboards/fleet

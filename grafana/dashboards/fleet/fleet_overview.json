@@ -1,0 +1,590 @@
+{
+  "uid": "fleet-overview",
+  "title": "Fleet Overview",
+  "tags": ["fleet", "executive", "monitoring"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "editable": true,
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {
+          "text": "Prometheus",
+          "value": "Prometheus"
+        },
+        "hide": 0
+      },
+      {
+        "name": "app",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "$datasource"
+        },
+        "query": "label_values(up, app)",
+        "refresh": 1,
+        "includeAll": true,
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "tier",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "$datasource"
+        },
+        "query": "label_values(up{app=~\"$app\"}, tier)",
+        "refresh": 1,
+        "includeAll": true,
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "db_type",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "$datasource"
+        },
+        "query": "label_values(up{app=~\"$app\", tier=~\"$tier\"}, db_type)",
+        "refresh": 1,
+        "includeAll": true,
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Executive Summary",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Total Targets",
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "targets": [
+        {
+          "expr": "count(up{app=~\"$app\", tier=~\"$tier\", db_type=~\"$db_type\"})",
+          "legendFormat": "targets",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Targets UP",
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "targets": [
+        {
+          "expr": "sum(up{app=~\"$app\", tier=~\"$tier\", db_type=~\"$db_type\"})",
+          "legendFormat": "up",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Targets DOWN",
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "targets": [
+        {
+          "expr": "count(up{app=~\"$app\", tier=~\"$tier\", db_type=~\"$db_type\"} == 0)",
+          "legendFormat": "down",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Critical Alerts",
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "targets": [
+        {
+          "expr": "count(ALERTS{alertstate=\"firing\", severity=\"critical\", app=~\"$app\", tier=~\"$tier\", db_type=~\"$db_type\"})",
+          "legendFormat": "critical",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Warning Alerts",
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "targets": [
+        {
+          "expr": "count(ALERTS{alertstate=\"firing\", severity=\"warning\", app=~\"$app\", tier=~\"$tier\", db_type=~\"$db_type\"})",
+          "legendFormat": "warning",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Availability %",
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "targets": [
+        {
+          "expr": "avg(up{app=~\"$app\", tier=~\"$tier\", db_type=~\"$db_type\"})",
+          "legendFormat": "availability",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.95 },
+              { "color": "green", "value": 0.99 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Fleet Health Breakdown",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 9,
+      "type": "barchart",
+      "title": "Targets by Service",
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 6 },
+      "targets": [
+        {
+          "expr": "count by (service) (up{app=~\"$app\", tier=~\"$tier\", db_type=~\"$db_type\"})",
+          "legendFormat": "{{service}}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "legend": { "displayMode": "hidden", "placement": "bottom" },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "decimals": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "type": "barchart",
+      "title": "Targets DOWN by App",
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 6 },
+      "targets": [
+        {
+          "expr": "count by (app) (up{app=~\"$app\", tier=~\"$tier\", db_type=~\"$db_type\"} == 0)",
+          "legendFormat": "{{app}}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "legend": { "displayMode": "hidden", "placement": "bottom" },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 11,
+      "type": "barchart",
+      "title": "Firing Alerts by App",
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 6 },
+      "targets": [
+        {
+          "expr": "count by (app) (ALERTS{alertstate=\"firing\", app=~\"$app\", tier=~\"$tier\", db_type=~\"$db_type\"})",
+          "legendFormat": "{{app}}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "legend": { "displayMode": "hidden", "placement": "bottom" },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "decimals": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 12,
+      "type": "row",
+      "title": "Trends",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Target Availability Trend",
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "targets": [
+        {
+          "expr": "avg by (service) (up{app=~\"$app\", tier=~\"$tier\", db_type=~\"$db_type\"})",
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "min"] },
+        "tooltip": { "mode": "multi", "sort": "asc" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Firing Alerts Trend",
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "targets": [
+        {
+          "expr": "count by (severity) (ALERTS{alertstate=\"firing\", app=~\"$app\", tier=~\"$tier\", db_type=~\"$db_type\"})",
+          "legendFormat": "{{severity}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "Current Detail",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 16,
+      "type": "table",
+      "title": "Current DOWN Targets",
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "expr": "up{app=~\"$app\", tier=~\"$tier\", db_type=~\"$db_type\"} == 0",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": { "show": true, "reducer": ["count"], "countRows": true }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": { "type": "auto" },
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Value" },
+            "properties": [
+              { "id": "displayName", "value": "Status" },
+              { "id": "unit", "value": "short" }
+            ]
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "__name__": true,
+              "Time": true
+            },
+            "renameByName": {
+              "job": "Job",
+              "instance": "Instance",
+              "service": "Service",
+              "db_type": "DB Type",
+              "app": "Application",
+              "tier": "Tier",
+              "owner": "Owner",
+              "Value": "Status"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "table",
+      "title": "Current Firing Alerts",
+      "datasource": { "type": "prometheus", "uid": "$datasource" },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 24 },
+      "targets": [
+        {
+          "expr": "ALERTS{alertstate=\"firing\", app=~\"$app\", tier=~\"$tier\", db_type=~\"$db_type\"}",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": { "show": true, "reducer": ["count"], "countRows": true }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": { "type": "auto" },
+            "inspect": false
+          }
+        },
+        "overrides": []
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "__name__": true,
+              "Time": true,
+              "alertstate": true,
+              "Value": true
+            },
+            "renameByName": {
+              "alertname": "Alert",
+              "severity": "Severity",
+              "category": "Category",
+              "job": "Job",
+              "instance": "Instance",
+              "db_type": "DB Type",
+              "app": "Application",
+              "tier": "Tier",
+              "owner": "Owner"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

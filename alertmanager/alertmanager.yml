@@ -9,45 +9,35 @@ global:
 
 route:
   receiver: "dba-email"
-  group_by: ["alertname", "instance", "db_type", "app", "tier", "severity"]
+  group_by: ["alertname", "app", "tier", "severity"]
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 4h
-
-  routes:
-    - matchers:
-        - severity="critical"
-      receiver: "dba-critical-email"
-      repeat_interval: 1h
-
-    - matchers:
-        - severity="warning"
-      receiver: "dba-warning-email"
-      repeat_interval: 4h
 
 receivers:
   - name: "dba-email"
     email_configs:
       - to: "dba-team@company.local"
         send_resolved: true
-
-  - name: "dba-critical-email"
-    email_configs:
-      - to: "dba-team@company.local"
-        send_resolved: true
         headers:
-          subject: "[CRITICAL] {{ .CommonLabels.alertname }} - {{ .CommonLabels.instance }}"
+          subject: "[{{ .CommonLabels.severity | toUpper }}][{{ .CommonLabels.app | toUpper }}][{{ .CommonLabels.tier | toUpper }}] {{ .CommonLabels.alertname }}"
 
-  - name: "dba-warning-email"
-    email_configs:
-      - to: "dba-team@company.local"
-        send_resolved: true
-        headers:
-          subject: "[WARNING] {{ .CommonLabels.alertname }} - {{ .CommonLabels.instance }}"
+        html: |
+          <b>Alert:</b> {{ .CommonLabels.alertname }}<br>
+          <b>Severity:</b> {{ .CommonLabels.severity }}<br>
+          <b>Application:</b> {{ .CommonLabels.app }}<br>
+          <b>Tier:</b> {{ .CommonLabels.tier }}<br>
+          <b>Instance:</b> {{ .CommonLabels.instance }}<br>
+          <b>Database Type:</b> {{ .CommonLabels.db_type }}<br>
+          <br>
+          <b>Description:</b><br>
+          {{ range .Alerts }}
+            - {{ .Annotations.summary }}<br>
+          {{ end }}
 
 inhibit_rules:
   - source_matchers:
       - severity="critical"
     target_matchers:
       - severity="warning"
-    equal: ["alertname", "instance", "db_type"]
+    equal: ["alertname", "instance", "db_type", "app"]
