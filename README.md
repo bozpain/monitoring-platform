@@ -38,7 +38,7 @@ Designed to deliver real-time monitoring, intelligent alerting, and unified dash
 ## 🏗️ Architecture
 
 <p align="center">
-  <img src="docs/architecture.png" width="900"/>
+  <img src="docs/images/architecture.png" width="900"/>
 </p>
 
 ### Flow
@@ -76,12 +76,13 @@ Designed to deliver real-time monitoring, intelligent alerting, and unified dash
 
 ## 📸 Screenshots
 
-<p align="center">
-  <img src="docs/screenshots/architecture.png" width="250"/>
-  <img src="docs/screenshots/fleet.png" width="250"/>
-  <img src="docs/screenshots/database.png" width="250"/>
-  <img src="docs/screenshots/infrastructure.png" width="250"/>
-</p>
+_(Screenshots will be added soon)_
+//<p align="center">
+// <img src="docs/screenshots/architecture.png" width="250"/>
+// <img src="docs/screenshots/fleet.png" width="250"/>
+// <img src="docs/screenshots/database.png" width="250"/>
+// <img src="docs/screenshots/infrastructure.png" width="250"/>
+//</p>
 
 ---
 
