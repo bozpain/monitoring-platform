@@ -76,13 +76,7 @@ Designed to deliver real-time monitoring, intelligent alerting, and unified dash
 
 ## 📸 Screenshots
 
-_(Screenshots will be added soon)_
-//<p align="center">
-// <img src="docs/screenshots/architecture.png" width="250"/>
-// <img src="docs/screenshots/fleet.png" width="250"/>
-// <img src="docs/screenshots/database.png" width="250"/>
-// <img src="docs/screenshots/infrastructure.png" width="250"/>
-//</p>
+Dashboard previews will be added in the next update.
 
 ---
 
