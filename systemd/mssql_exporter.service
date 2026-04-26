@@ -1,0 +1,25 @@
+[Unit]
+Description=MSSQL Exporter
+After=network.target
+
+[Service]
+Type=simple
+User=monitoring
+Group=monitoring
+
+EnvironmentFile=/monitoring/exporters/mssql/mssql_exporter.env
+
+ExecStart=/monitoring/exporters/mssql/mssql_exporter \
+  --web.listen-address=0.0.0.0:9182 \
+  --config.file=/monitoring/exporters/mssql/mssql-metrics.toml
+
+Restart=always
+RestartSec=5
+
+StandardOutput=append:/monitoring/logs/exporters/mssql_exporter.log
+StandardError=append:/monitoring/logs/exporters/mssql_exporter.err
+
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

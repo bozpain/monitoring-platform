@@ -35,7 +35,7 @@ if [ -z "$OE_TAR" ]; then
 fi
 
 if [ ! -f "$METRICS_SRC" ]; then
-  echo "[ERROR] DPA metrics file not found: $METRICS_SRC"
+  echo "[ERROR] Oracle metrics file not found: $METRICS_SRC"
   exit 1
 fi
 
@@ -56,7 +56,7 @@ fi
 cp "$OE_BIN" "$ORACLE_DIR/oracledb_exporter"
 rm -rf "$TMP_DIR"
 
-echo "[INFO] Installing DPA metrics..."
+echo "[INFO] Installing Oracle metrics..."
 cp "$METRICS_SRC" "$METRICS_DST"
 
 if [ ! -f "$ORACLE_DIR/oracle_exporter.env" ]; then
