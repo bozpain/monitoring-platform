@@ -1,253 +1,336 @@
 # Database Monitoring Platform - Deployment Plan
 
----
+This is the main deployment runbook for the single-VM installation path.
 
-## Overview
+For 3 VM expansion, use [deployment_plan_expand.md](deployment_plan_expand.md). For DBA grants, firewall details, SELinux notes, VictoriaMetrics tuning, and validation queries, use [operator_handover.md](operator_handover.md).
 
-Platform monitoring database berbasis:
+## 1. Target Architecture
 
-- Prometheus (metrics collection)
-- VictoriaMetrics (metrics storage)
-- Grafana (dashboard visualization)
-- Alertmanager (alerting)
-- Exporters: Oracle, MSSQL, Node
+Single VM deployment installs:
 
-Target:
-- 100% free
-- Offline-ready
-- Scalable (100–1000 DB)
-- Fokus non-production (VIT / SIT / UAT / PT)
+| Component | Purpose | Port |
+| --- | --- | --- |
+| VictoriaMetrics | Long-retention metrics storage | `8428` |
+| Alertmanager | Alert routing and email notification | `9093` |
+| Prometheus | Scrape, service discovery, rules, remote write | `9090` |
+| Node exporter | OS/server metrics | `9100` |
+| Oracle exporter | Oracle DB metrics | `9161` |
+| MSSQL exporter | SQL Server metrics | `9182` |
+| Grafana | Dashboards and visualization | `3000` |
 
----
+Data flow:
 
-## Architecture
+```text
+Node/Oracle/MSSQL exporters -> Prometheus -> VictoriaMetrics -> Grafana
+                                      |
+                                      v
+                                Alertmanager
+```
 
-Simpan gambar di:
-docs/images/architecture.png
+## 2. VM Requirement
 
----
+Recommended starter sizing:
 
-## VM Requirement
+| Resource | Minimum starter value |
+| --- | --- |
+| OS | Oracle Linux 8 or RHEL-compatible Linux |
+| CPU | 4 cores |
+| RAM | 8-16 GB |
+| Disk | 100 GB minimum, larger for long retention |
+| Runtime | `systemd`, `dnf` or `yum`, local root/sudo access |
 
-Start Small:
-CPU: 4 Core  
-RAM: 8–16 GB  
-Disk: 100 GB  
-OS: Oracle Linux 8  
+Expected base packages:
 
----
+```text
+tar gzip unzip curl wget vim net-tools lsof chrony python3 firewalld policycoreutils policycoreutils-python-utils
+```
 
-## STEP 1 — Prepare VM
+## 3. Prepare Offline Packages
 
-sudo -i  
-yum install -y wget tar unzip curl vim net-tools  
-useradd -m monitoring  
+Upload approved packages to:
 
----
+```text
+/monitoring/sources/tar
+/monitoring/sources/rpm
+/monitoring/sources/checksum
+```
 
-## STEP 2 — Create Directory
+Expected file patterns:
 
-mkdir -p /monitoring && cd /monitoring
+| Component | File pattern |
+| --- | --- |
+| Prometheus | `prometheus-*.linux-amd64.tar.gz` |
+| VictoriaMetrics | `victoria-metrics-linux-amd64-*.tar.gz` |
+| Alertmanager | `alertmanager-*.linux-amd64.tar.gz` |
+| Node exporter | `node_exporter*.tar.gz` |
+| Oracle exporter | `oracledb_exporter*.tar.gz` |
+| MSSQL exporter | `mssql_exporter*.tar.gz` |
+| Grafana | `grafana-*.rpm` |
 
-mkdir -p prometheus/bin prometheus/conf/alerts victoriametrics/bin victoriametrics/conf grafana/conf grafana/dashboards/oracle grafana/dashboards/mssql grafana/dashboards/node alertmanager/bin alertmanager/conf exporters/oracle exporters/mssql exporters/node config/targets data/prometheus data/victoriametrics data/alertmanager logs/prometheus logs/victoriametrics logs/grafana logs/alertmanager logs/exporters sources/tar sources/rpm sources/checksum
+If `/monitoring` does not exist yet, copy the repo to the VM and run the prepare step first:
 
-chown -R monitoring:monitoring /monitoring  
-chmod -R 755 /monitoring  
+```bash
+sudo ./01_prepare_vm.sh
+```
 
----
+Then upload the packages and verify checksums:
 
-## STEP 3 — Upload Binary
+```bash
+cd /monitoring/sources
+sha256sum -c checksum/SHA256SUMS
+```
 
-Upload ke:
-/monitoring/sources/
+For offline VMs where OS packages are already installed:
 
-Required:
-prometheus.tar.gz  
-victoriametrics.tar.gz  
-alertmanager.tar.gz  
-grafana.rpm  
-node_exporter.tar.gz  
-oracle_exporter.tar.gz  
-mssql_exporter.tar.gz  
+```bash
+sudo INSTALL_PACKAGES=skip ./01_prepare_vm.sh
+```
 
----
+For online VMs or VMs with an approved internal repository:
 
-## STEP 4 — Install VictoriaMetrics
+```bash
+sudo INSTALL_PACKAGES=online ./01_prepare_vm.sh
+```
 
-cd /monitoring/sources/tar  
-tar -xvf victoriametrics*.tar.gz  
+## 4. Configure Inventory
 
-cp victoria-metrics-prod /monitoring/victoriametrics/bin/  
-chmod +x /monitoring/victoriametrics/bin/*  
+Edit the source inventory in the repo:
 
-Buat service:
-vi /etc/systemd/system/victoriametrics.service
+```bash
+vi inventory/targets.csv
+```
 
-Isi:
+Required columns:
 
-[Unit]
-Description=VictoriaMetrics
-After=network.target
+```text
+host,ip,node,oracle,mssql,app,tier,owner
+```
 
-[Service]
-User=monitoring
-ExecStart=/monitoring/victoriametrics/bin/victoria-metrics-prod -storageDataPath=/monitoring/data/victoriametrics -httpListenAddr=:8428
-Restart=always
+Use `yes` or `no` for `node`, `oracle`, and `mssql`.
 
-[Install]
-WantedBy=multi-user.target
+Generate Prometheus `file_sd` target files:
 
-systemctl daemon-reload  
-systemctl enable --now victoriametrics  
+```bash
+python3 scripts/generate_targets.py
+```
 
----
+Generated files:
 
-## STEP 5 — Install Prometheus
+```text
+config/targets/node_targets.yml
+config/targets/oracle_targets.yml
+config/targets/mssql_targets.yml
+```
 
-cd /monitoring/sources/tar  
-tar -xvf prometheus*.tar.gz  
+Review the generated target ports:
 
-cp prometheus promtool /monitoring/prometheus/bin/  
-chmod +x /monitoring/prometheus/bin/*  
+| Target type | Port |
+| --- | --- |
+| Node | `9100` |
+| Oracle | `9161` |
+| MSSQL | `9182` |
 
-Config:
-vi /monitoring/prometheus/conf/prometheus.yml
+## 5. Deploy All Components
 
-Isi:
+Run from the repository root:
 
-global:
-  scrape_interval: 30s
+```bash
+sudo ./deploy_all.sh
+```
 
-scrape_configs:
-- job_name: node
-  file_sd_configs:
-  - files:
-    - /monitoring/config/targets/node_targets.yml
+The deployment script runs this order:
 
-- job_name: oracle
-  file_sd_configs:
-  - files:
-    - /monitoring/config/targets/oracle_targets.yml
+```text
+validate generated targets
+01_prepare_vm.sh
+02_install_victoriametrics.sh
+06_install_alertmanager.sh
+03_install_prometheus.sh
+04_install_node_exporter.sh
+07_install_oracle_exporter.sh
+08_install_mssql_exporter.sh
+05_install_grafana.sh
+09_health_check.sh
+```
 
-- job_name: mssql
-  file_sd_configs:
-  - files:
-    - /monitoring/config/targets/mssql_targets.yml
+This order matters because Prometheus depends on Alertmanager and VictoriaMetrics endpoints being present, and Grafana expects VictoriaMetrics as its datasource.
 
-Service:
-vi /etc/systemd/system/prometheus.service
+## 6. Manual Step-By-Step Deployment
 
-systemctl enable --now prometheus  
+Use this only when you want to troubleshoot or install one component at a time:
 
----
+```bash
+sudo ./01_prepare_vm.sh
+sudo ./02_install_victoriametrics.sh
+sudo ./06_install_alertmanager.sh
+sudo ./03_install_prometheus.sh
+sudo ./04_install_node_exporter.sh
+sudo ./07_install_oracle_exporter.sh
+sudo ./08_install_mssql_exporter.sh
+sudo ./05_install_grafana.sh
+sudo ./09_health_check.sh
+```
 
-## STEP 6 — Install Alertmanager
+Oracle and MSSQL exporter installers create service files and credential templates, but they do not start the exporters until the connection strings are correct.
 
-cd /monitoring/sources/tar  
-tar -xvf alertmanager*.tar.gz  
+## 7. Configure Database Exporters
 
-cp alertmanager /monitoring/alertmanager/bin/  
-chmod +x /monitoring/alertmanager/bin/*  
+Create DB monitoring users and grants first. Use [operator_handover.md](operator_handover.md) for SQL examples.
 
-systemctl enable --now alertmanager  
+Edit Oracle exporter credentials:
 
----
+```bash
+sudo vi /monitoring/exporters/oracle/oracle_exporter.env
+sudo systemctl restart oracle_exporter
+sudo systemctl status oracle_exporter --no-pager
+```
 
-## STEP 7 — Install Grafana
+Edit MSSQL exporter credentials:
 
-cd /monitoring/sources/rpm  
-yum install -y grafana*.rpm  
+```bash
+sudo vi /monitoring/exporters/mssql/mssql_exporter.env
+sudo systemctl restart mssql_exporter
+sudo systemctl status mssql_exporter --no-pager
+```
 
-systemctl enable --now grafana-server  
+Quick endpoint checks:
 
----
+```bash
+curl http://localhost:9161/metrics | grep '^oracle_up'
+curl http://localhost:9182/metrics | grep '^mssql_up'
+```
 
-## STEP 8 — Install Node Exporter
+## 8. Configure Alertmanager
 
-cd /monitoring/sources/tar  
-tar -xvf node_exporter*.tar.gz  
+Edit SMTP settings:
 
-cp node_exporter /monitoring/exporters/node/  
-chmod +x /monitoring/exporters/node/node_exporter  
+```bash
+sudo vi /monitoring/alertmanager/conf/alertmanager.yml
+sudo systemctl restart alertmanager
+```
 
-systemctl enable --now node_exporter  
+Replace all `CHANGE_ME` values and company placeholders before relying on alert email.
 
----
+## 9. Tune VictoriaMetrics
 
-## STEP 9 — Install Oracle Exporter
+Default tuning is installed from:
 
-cd /monitoring/sources/tar  
-tar -xvf oracle_exporter*.tar.gz  
+```text
+config/victoriametrics/victoriametrics.env.example
+```
 
-cp exporter /monitoring/exporters/oracle/  
+Runtime path:
 
-systemctl enable --now oracle_exporter  
+```text
+/monitoring/victoriametrics/conf/victoriametrics.env
+```
 
----
+Common settings:
 
-## STEP 10 — Install MSSQL Exporter
+| Setting | Purpose |
+| --- | --- |
+| `VM_RETENTION_PERIOD` | Metrics retention period |
+| `VM_MEMORY_ALLOWED_PERCENT` | Internal VictoriaMetrics memory budget |
+| `VM_MIN_FREE_DISK_SPACE` | Disk free-space guardrail |
+| `VM_SEARCH_MAX_QUERY_DURATION` | Query timeout |
+| `VM_SEARCH_MAX_CONCURRENT_REQUESTS` | Query concurrency limit |
+| `VM_SEARCH_MAX_QUEUE_DURATION` | Query queue wait limit |
 
-cd /monitoring/sources/tar  
-tar -xvf mssql_exporter*.tar.gz  
+Apply changes:
 
-cp exporter /monitoring/exporters/mssql/  
+```bash
+sudo systemctl restart victoriametrics
+curl -fsS http://localhost:8428/health
+```
 
-systemctl enable --now mssql_exporter  
+## 10. Open Firewall Ports
 
----
+For single VM control plane access:
 
-## STEP 11 — Register Targets
+```bash
+sudo firewall-cmd --permanent --add-port=3000/tcp
+sudo firewall-cmd --permanent --add-port=9090/tcp
+sudo firewall-cmd --permanent --add-port=9093/tcp
+sudo firewall-cmd --permanent --add-port=8428/tcp
+sudo firewall-cmd --reload
+```
 
-vi /monitoring/config/targets/node_targets.yml
+For exporter hosts:
 
-- targets:
-  - "10.10.10.10:9100"
-  labels:
-    service: "node"
-    environment: "sit"
+```bash
+sudo firewall-cmd --permanent --add-port=9100/tcp
+sudo firewall-cmd --permanent --add-port=9161/tcp
+sudo firewall-cmd --permanent --add-port=9182/tcp
+sudo firewall-cmd --reload
+```
 
-systemctl restart prometheus  
+## 11. Validate Deployment
 
----
+Run the health check:
 
-## STEP 12 — Validation
+```bash
+sudo ./09_health_check.sh
+```
 
-Prometheus: http://IP:9090  
-Grafana: http://IP:3000  
-Alertmanager: http://IP:9093  
+Open these URLs:
 
-Check:
-http://IP:9090/targets
+```text
+http://VM_IP:9090/targets
+http://VM_IP:9090/alerts
+http://VM_IP:8428
+http://VM_IP:3000
+http://VM_IP:9093
+```
 
----
+Prometheus config and rules:
 
-## Troubleshooting
+```bash
+sudo /monitoring/prometheus/bin/promtool check config /monitoring/prometheus/conf/prometheus.yml
+sudo /monitoring/prometheus/bin/promtool check rules /monitoring/prometheus/conf/alerts/*.yml
+```
 
-journalctl -u prometheus -f  
-journalctl -u grafana-server -f  
-journalctl -u alertmanager -f  
+VictoriaMetrics remote-write validation:
 
----
+```bash
+curl -G 'http://localhost:8428/api/v1/query' --data-urlencode 'query=up'
+curl -G 'http://localhost:8428/api/v1/query' --data-urlencode 'query=oracle_up'
+curl -G 'http://localhost:8428/api/v1/query' --data-urlencode 'query=mssql_up'
+```
 
-## Scaling
+## 12. Troubleshooting
 
-Edit:
-/monitoring/config/targets/*.yml  
+Service logs:
 
-Restart:
-systemctl restart prometheus  
+```bash
+sudo journalctl -u prometheus -n 100 --no-pager
+sudo journalctl -u victoriametrics -n 100 --no-pager
+sudo journalctl -u grafana-server -n 100 --no-pager
+sudo journalctl -u alertmanager -n 100 --no-pager
+sudo journalctl -u oracle_exporter -n 100 --no-pager
+sudo journalctl -u mssql_exporter -n 100 --no-pager
+```
 
----
+Service status:
 
-## Final Checklist
+```bash
+sudo systemctl status prometheus --no-pager
+sudo systemctl status victoriametrics --no-pager
+sudo systemctl status grafana-server --no-pager
+sudo systemctl status alertmanager --no-pager
+sudo systemctl status oracle_exporter --no-pager
+sudo systemctl status mssql_exporter --no-pager
+```
 
-- Prometheus running  
-- Grafana login OK  
-- Targets UP  
-- Exporter running  
-- Dashboard tampil  
-- Alertmanager aktif  
+## 13. Final Checklist
 
----
-
-END
+- Offline packages and SHA256 checksums are approved.
+- `inventory/targets.csv` is reviewed.
+- `config/targets/*.yml` files are generated.
+- `deploy_all.sh` completed successfully.
+- DB monitoring users are created.
+- Oracle and MSSQL exporter credentials are updated.
+- Exporter targets are `UP` in Prometheus.
+- Prometheus rules load without errors.
+- VictoriaMetrics contains `up`, `oracle_up`, and `mssql_up`.
+- Grafana datasource is healthy.
+- Alertmanager SMTP settings are updated and tested.

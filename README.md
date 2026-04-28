@@ -34,6 +34,7 @@ Flow:
 | `alertmanager/alertmanager.yml` | Alertmanager email routing template |
 | `grafana/provisioning/` | Grafana datasource and dashboard provisioning |
 | `systemd/*.service` | Systemd service files installed by the scripts |
+| `docs/deployment_plan.md` | Main single-VM deployment runbook |
 | `docs/operator_handover.md` | DB grants, offline package manifest process, firewall, SELinux, validation |
 | `docs/offline_package_manifest.example.csv` | Template for approved offline package versions and checksums |
 | `docs/dpa_metric_catalog.md` | DPA-style metric coverage for node, Oracle, and MSSQL |
@@ -48,6 +49,7 @@ Run all commands from the repository root unless stated otherwise.
 Before handover or production deployment, review the detailed operator guide:
 
 ```text
+docs/deployment_plan.md
 docs/operator_handover.md
 docs/dpa_metric_catalog.md
 docs/alert_catalog.md
@@ -143,7 +145,23 @@ Run:
 sudo ./deploy_all.sh
 ```
 
-The script installs core services, copies configs and dashboards, enables systemd services, and runs `09_health_check.sh`.
+The script checks generated target files, installs core services, copies configs and dashboards, enables systemd services, and runs `09_health_check.sh`.
+
+If you need to run the installer step by step, use this order:
+
+```bash
+sudo ./01_prepare_vm.sh
+sudo ./02_install_victoriametrics.sh
+sudo ./06_install_alertmanager.sh
+sudo ./03_install_prometheus.sh
+sudo ./04_install_node_exporter.sh
+sudo ./07_install_oracle_exporter.sh
+sudo ./08_install_mssql_exporter.sh
+sudo ./05_install_grafana.sh
+sudo ./09_health_check.sh
+```
+
+Oracle and MSSQL exporter installers only create/enable the services and credential templates. Start them after the database users and `DATA_SOURCE_NAME` values are correct.
 
 VictoriaMetrics tuning defaults are installed from:
 
