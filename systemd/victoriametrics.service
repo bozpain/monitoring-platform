@@ -7,19 +7,34 @@ Wants=network-online.target
 User=monitoring
 Group=monitoring
 Type=simple
+EnvironmentFile=/monitoring/victoriametrics/conf/victoriametrics.env
 
 ExecStart=/monitoring/victoriametrics/bin/victoria-metrics-prod \
   -storageDataPath=/monitoring/data/victoriametrics \
-  -retentionPeriod=30d \
+  -retentionPeriod=${VM_RETENTION_PERIOD} \
   -httpListenAddr=:8428 \
-  -loggerLevel=INFO
+  -loggerLevel=${VM_LOGGER_LEVEL} \
+  -memory.allowedPercent=${VM_MEMORY_ALLOWED_PERCENT} \
+  -storage.minFreeDiskSpaceBytes=${VM_MIN_FREE_DISK_SPACE} \
+  -search.maxQueryDuration=${VM_SEARCH_MAX_QUERY_DURATION} \
+  -search.maxConcurrentRequests=${VM_SEARCH_MAX_CONCURRENT_REQUESTS} \
+  -search.maxQueueDuration=${VM_SEARCH_MAX_QUEUE_DURATION}
 
 Restart=always
 RestartSec=5
 LimitNOFILE=65536
+LimitNPROC=65536
+TimeoutStopSec=60
+KillSignal=SIGTERM
 
 StandardOutput=append:/monitoring/logs/victoriametrics/victoriametrics.log
 StandardError=append:/monitoring/logs/victoriametrics/victoriametrics-error.log
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/monitoring/victoriametrics /monitoring/data/victoriametrics /monitoring/logs/victoriametrics
 
 [Install]
 WantedBy=multi-user.target

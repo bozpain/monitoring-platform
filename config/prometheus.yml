@@ -17,6 +17,24 @@ alerting:
 scrape_configs:
 
   # =========================
+  # VICTORIAMETRICS STORAGE
+  # =========================
+  - job_name: "victoriametrics"
+    static_configs:
+      - targets:
+          - "localhost:8428"
+        labels:
+          service: "victoriametrics"
+          environment: "development"
+          site: "development"
+          team: "dba"
+          role: "storage"
+          db_type: "none"
+          app: "monitoring-platform"
+          tier: "shared"
+          owner: "dba"
+
+  # =========================
   # NODE EXPORTER
   # =========================
   - job_name: "node"

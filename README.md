@@ -82,6 +82,19 @@ If `/monitoring` does not exist yet, run only the preparation step first, then u
 sudo ./01_prepare_vm.sh
 ```
 
+Package installation behavior for step 01:
+
+```bash
+# Default: install packages only when enabled yum/dnf repositories exist
+sudo ./01_prepare_vm.sh
+
+# Offline VM with packages already installed
+sudo INSTALL_PACKAGES=skip ./01_prepare_vm.sh
+
+# Force yum/dnf package install
+sudo INSTALL_PACKAGES=online ./01_prepare_vm.sh
+```
+
 ### 2. Edit Inventory
 
 Edit:
@@ -131,6 +144,19 @@ sudo ./deploy_all.sh
 ```
 
 The script installs core services, copies configs and dashboards, enables systemd services, and runs `09_health_check.sh`.
+
+VictoriaMetrics tuning defaults are installed from:
+
+```text
+config/victoriametrics/victoriametrics.env.example
+```
+
+On the server, tune retention, memory budget, disk free-space guardrail, and query limits here:
+
+```bash
+sudo vi /monitoring/victoriametrics/conf/victoriametrics.env
+sudo systemctl restart victoriametrics
+```
 
 ### 5. Configure Database Exporter Credentials
 

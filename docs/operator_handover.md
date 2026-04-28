@@ -44,6 +44,13 @@ Recommended policy:
 - Store package files under `/monitoring/sources/tar` and `/monitoring/sources/rpm`.
 - Store SHA256 checksums under `/monitoring/sources/checksum`.
 - Do not replace package files during a deployment without updating the manifest and checksum file.
+- On offline VMs, install base OS packages from the approved internal repository/media first, or run `INSTALL_PACKAGES=skip ./01_prepare_vm.sh` after verifying prerequisites.
+
+Base OS packages expected by the installer flow:
+
+```text
+tar gzip unzip curl wget vim net-tools lsof chrony python3 firewalld policycoreutils policycoreutils-python-utils
+```
 
 Expected files:
 
@@ -77,7 +84,50 @@ Fill the package manifest before handover:
 docs/offline_package_manifest.example.csv
 ```
 
-## 3. Oracle Monitoring User
+## 3. VictoriaMetrics Tuning
+
+The installer deploys single-node VictoriaMetrics with conservative defaults from:
+
+```text
+config/victoriametrics/victoriametrics.env.example
+```
+
+Installed path:
+
+```text
+/monitoring/victoriametrics/conf/victoriametrics.env
+```
+
+Default tuning:
+
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `VM_RETENTION_PERIOD` | `90d` | Long-term metrics retention |
+| `VM_MEMORY_ALLOWED_PERCENT` | `60` | Internal cache memory budget |
+| `VM_MIN_FREE_DISK_SPACE` | `10GB` | Stop ingestion before disk is full |
+| `VM_SEARCH_MAX_QUERY_DURATION` | `2m` | Cancel unexpectedly heavy queries |
+| `VM_SEARCH_MAX_CONCURRENT_REQUESTS` | `16` | Bound concurrent query memory usage |
+| `VM_SEARCH_MAX_QUEUE_DURATION` | `30s` | Bound queued query wait time |
+
+After changing tuning:
+
+```bash
+sudo systemctl restart victoriametrics
+curl -fsS http://localhost:8428/health
+curl -fsS http://localhost:8428/metrics | grep '^vm_'
+```
+
+Watch these during the first production week:
+
+```bash
+df -h /monitoring/data/victoriametrics
+journalctl -u victoriametrics -n 100 --no-pager
+curl -G 'http://localhost:8428/api/v1/query' --data-urlencode 'query=up'
+```
+
+Prometheus also scrapes VictoriaMetrics itself with `job="victoriametrics"` so storage availability, ignored rows, and cache saturation can alert.
+
+## 4. Oracle Monitoring User
 
 Run the following as a privileged DBA user. Adjust password, profile, and tablespace standards to match local policy.
 
@@ -138,7 +188,7 @@ curl http://localhost:9161/metrics | grep '^oracle_up'
 
 If ASM metrics are not required or the database user cannot access ASM views, remove or comment the ASM metric blocks in `/monitoring/exporters/oracle/oracle-metrics.toml`.
 
-## 4. MSSQL Monitoring User
+## 5. MSSQL Monitoring User
 
 Run the following as a SQL Server administrator. Adjust password and login policy to match local standards.
 
@@ -190,7 +240,7 @@ curl http://localhost:9182/metrics | grep '^mssql_up'
 
 Use `encrypt=true` or the organization standard if SQL Server requires TLS.
 
-## 5. Oracle Linux 8 Firewall And SELinux
+## 6. Oracle Linux 8 Firewall And SELinux
 
 ### Single VM Control Plane Ports
 
@@ -257,7 +307,7 @@ sudo setenforce 0
 
 If the issue disappears in permissive mode, create a proper SELinux policy with the Linux security team instead of leaving SELinux disabled.
 
-## 6. Metric Validation
+## 7. Metric Validation
 
 Run these after deployment and after every inventory change.
 
@@ -329,7 +379,7 @@ mssql_database_size_value{job="mssql"}
 
 Metric names can differ if exporter versions or custom query naming rules change. If a dashboard panel is empty, confirm the exact metric name from the exporter `/metrics` endpoint first.
 
-## 7. Handover Checklist
+## 8. Handover Checklist
 
 - Offline package manifest completed.
 - SHA256 checksums verified.

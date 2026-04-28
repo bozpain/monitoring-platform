@@ -35,6 +35,14 @@ This catalog describes the default alert policy. Thresholds are conservative sta
 | `MSSQLPageLifeExpectancyLow` | warning | PLE < 300s for 10m | Memory churn |
 | `MSSQLConnectionHigh` | warning | connections > 500 for 5m | Connection pressure |
 
+## VictoriaMetrics Alerts
+
+| Alert | Severity | Trigger | Why it matters |
+| --- | --- | --- | --- |
+| `VictoriaMetricsDown` | critical | `up{job="victoriametrics"} == 0` for 2m | Storage is unavailable to Prometheus/Grafana |
+| `VictoriaMetricsRowsIgnored` | warning | ignored rows increase in 5m | Data is being dropped or rejected |
+| `VictoriaMetricsCacheSaturated` | warning | cache usage > 95% for 10m | Cache pressure may increase CPU/disk I/O |
+
 ## Oracle Alerts
 
 | Alert | Severity | Trigger | Why it matters |

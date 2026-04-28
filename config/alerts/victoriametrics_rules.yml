@@ -1,0 +1,42 @@
+groups:
+  - name: victoriametrics.rules
+    interval: 30s
+    rules:
+
+      - alert: VictoriaMetricsDown
+        expr: up{job="victoriametrics"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+          service: victoriametrics
+        annotations:
+          summary: "VictoriaMetrics down on {{ $labels.instance }}"
+          description: "Prometheus cannot scrape VictoriaMetrics storage."
+
+      - alert: VictoriaMetricsRowsIgnored
+        expr: increase(vm_rows_ignored_total{job="victoriametrics"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          category: ingestion
+          service: victoriametrics
+        annotations:
+          summary: "VictoriaMetrics is ignoring rows on {{ $labels.instance }}"
+          description: "Rows were ignored in the last 5 minutes. Check reason label and VictoriaMetrics logs."
+
+      - alert: VictoriaMetricsCacheSaturated
+        expr: |
+          (
+            vm_cache_size_bytes{job="victoriametrics"}
+            /
+            clamp_min(vm_cache_size_max_bytes{job="victoriametrics"}, 1)
+          ) > 0.95
+        for: 10m
+        labels:
+          severity: warning
+          category: cache
+          service: victoriametrics
+        annotations:
+          summary: "VictoriaMetrics cache saturated on {{ $labels.instance }}"
+          description: "Cache {{ $labels.type }} is above 95% utilization. Check memory budget and cache miss ratio."
