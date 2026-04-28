@@ -20,7 +20,10 @@ groups:
       # CPU
       # =========================
       - alert: NodeHighCPUUsage
-        expr: (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle", job="node"}[5m]))) > 0.85
+        expr: |
+          (1 - avg by (instance, app, tier, owner) (rate(node_cpu_seconds_total{mode="idle", job="node"}[5m]))) > 0.85
+          and
+          (1 - avg by (instance, app, tier, owner) (rate(node_cpu_seconds_total{mode="idle", job="node"}[5m]))) < 0.95
         for: 5m
         labels:
           severity: warning
@@ -30,7 +33,7 @@ groups:
           description: "CPU usage > 85%"
 
       - alert: NodeCriticalCPUUsage
-        expr: (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle", job="node"}[5m]))) > 0.95
+        expr: (1 - avg by (instance, app, tier, owner) (rate(node_cpu_seconds_total{mode="idle", job="node"}[5m]))) > 0.95
         for: 5m
         labels:
           severity: critical
@@ -43,7 +46,10 @@ groups:
       # MEMORY
       # =========================
       - alert: NodeHighMemoryUsage
-        expr: (1 - (node_memory_MemAvailable_bytes{job="node"} / node_memory_MemTotal_bytes{job="node"})) > 0.85
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes{job="node"} / node_memory_MemTotal_bytes{job="node"})) > 0.85
+          and
+          (1 - (node_memory_MemAvailable_bytes{job="node"} / node_memory_MemTotal_bytes{job="node"})) < 0.95
         for: 5m
         labels:
           severity: warning
@@ -68,10 +74,16 @@ groups:
       - alert: NodeDiskHighUsage
         expr: |
           (1 - (
-            node_filesystem_avail_bytes{job="node", fstype!~"tmpfs|overlay"}
+            node_filesystem_avail_bytes{job="node", fstype!~"tmpfs|overlay|squashfs", mountpoint!~"/run.*|/boot/efi"}
             /
-            node_filesystem_size_bytes{job="node", fstype!~"tmpfs|overlay"}
+            node_filesystem_size_bytes{job="node", fstype!~"tmpfs|overlay|squashfs", mountpoint!~"/run.*|/boot/efi"}
           )) > 0.85
+          and
+          (1 - (
+            node_filesystem_avail_bytes{job="node", fstype!~"tmpfs|overlay|squashfs", mountpoint!~"/run.*|/boot/efi"}
+            /
+            node_filesystem_size_bytes{job="node", fstype!~"tmpfs|overlay|squashfs", mountpoint!~"/run.*|/boot/efi"}
+          )) < 0.95
         for: 5m
         labels:
           severity: warning
@@ -83,9 +95,9 @@ groups:
       - alert: NodeDiskCriticalUsage
         expr: |
           (1 - (
-            node_filesystem_avail_bytes{job="node", fstype!~"tmpfs|overlay"}
+            node_filesystem_avail_bytes{job="node", fstype!~"tmpfs|overlay|squashfs", mountpoint!~"/run.*|/boot/efi"}
             /
-            node_filesystem_size_bytes{job="node", fstype!~"tmpfs|overlay"}
+            node_filesystem_size_bytes{job="node", fstype!~"tmpfs|overlay|squashfs", mountpoint!~"/run.*|/boot/efi"}
           )) > 0.95
         for: 5m
         labels:
@@ -101,9 +113,9 @@ groups:
       - alert: NodeInodeUsageHigh
         expr: |
           (1 - (
-            node_filesystem_files_free{job="node", fstype!~"tmpfs|overlay"}
+            node_filesystem_files_free{job="node", fstype!~"tmpfs|overlay|squashfs", mountpoint!~"/run.*|/boot/efi"}
             /
-            node_filesystem_files{job="node", fstype!~"tmpfs|overlay"}
+            node_filesystem_files{job="node", fstype!~"tmpfs|overlay|squashfs", mountpoint!~"/run.*|/boot/efi"}
           )) > 0.85
         for: 5m
         labels:
@@ -117,7 +129,7 @@ groups:
       # LOAD
       # =========================
       - alert: NodeHighLoad
-        expr: node_load1{job="node"} > (count by (instance)(node_cpu_seconds_total{job="node", mode="system"}))
+        expr: node_load1{job="node"} > count without (cpu, mode) (node_cpu_seconds_total{job="node", mode="system"})
         for: 5m
         labels:
           severity: warning
@@ -146,7 +158,7 @@ groups:
       # IO
       # =========================
       - alert: NodeHighDiskIOTime
-        expr: rate(node_disk_io_time_seconds_total{job="node"}[5m]) > 0.8
+        expr: rate(node_disk_io_time_seconds_total{job="node", device!~"loop.*|ram.*"}[5m]) > 0.8
         for: 5m
         labels:
           severity: warning
@@ -154,3 +166,71 @@ groups:
         annotations:
           summary: "Disk IO saturation on {{ $labels.instance }}"
           description: "Disk IO time > 80%"
+
+      - alert: NodeHighIOWait
+        expr: avg by (instance, app, tier, owner) (rate(node_cpu_seconds_total{job="node", mode="iowait"}[5m])) > 0.20
+        for: 5m
+        labels:
+          severity: warning
+          category: io
+        annotations:
+          summary: "High CPU IO wait on {{ $labels.instance }}"
+          description: "CPU IO wait > 20%; correlate with database physical read/write waits"
+
+      - alert: NodeDiskReadLatencyHigh
+        expr: |
+          (
+            rate(node_disk_read_time_seconds_total{job="node", device!~"loop.*|ram.*"}[5m])
+            /
+            clamp_min(rate(node_disk_reads_completed_total{job="node", device!~"loop.*|ram.*"}[5m]), 1)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          category: io
+        annotations:
+          summary: "Disk read latency high on {{ $labels.instance }}"
+          description: "Average disk read latency > 50ms on device {{ $labels.device }}"
+
+      - alert: NodeDiskWriteLatencyHigh
+        expr: |
+          (
+            rate(node_disk_write_time_seconds_total{job="node", device!~"loop.*|ram.*"}[5m])
+            /
+            clamp_min(rate(node_disk_writes_completed_total{job="node", device!~"loop.*|ram.*"}[5m]), 1)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          category: io
+        annotations:
+          summary: "Disk write latency high on {{ $labels.instance }}"
+          description: "Average disk write latency > 50ms on device {{ $labels.device }}"
+
+      - alert: NodeSwapUsageHigh
+        expr: |
+          (
+            node_memory_SwapTotal_bytes{job="node"}
+            - node_memory_SwapFree_bytes{job="node"}
+          )
+          / clamp_min(node_memory_SwapTotal_bytes{job="node"}, 1) > 0.20
+        for: 5m
+        labels:
+          severity: warning
+          category: memory
+        annotations:
+          summary: "Swap usage high on {{ $labels.instance }}"
+          description: "Swap usage > 20%; correlate with database memory pressure"
+
+      - alert: NodeNetworkDropRateHigh
+        expr: |
+          rate(node_network_receive_drop_total{job="node"}[5m]) > 10
+          or
+          rate(node_network_transmit_drop_total{job="node"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: "Network drop rate high on {{ $labels.instance }}"
+          description: "Network packet drops detected on {{ $labels.device }}"

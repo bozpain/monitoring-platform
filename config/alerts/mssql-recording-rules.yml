@@ -1,0 +1,98 @@
+groups:
+  - name: mssql.dpa.recording
+    interval: 30s
+    rules:
+      - record: mssql_up
+        expr: mssql_up_value
+
+      - record: mssql_active_sessions
+        expr: mssql_active_sessions_value
+      - record: mssql_sleeping_sessions
+        expr: mssql_sleeping_sessions_value
+      - record: mssql_blocked_sessions
+        expr: mssql_blocked_sessions_value
+      - record: mssql_long_running_requests
+        expr: mssql_long_running_requests_value
+      - record: mssql_sessions_by_status
+        expr: mssql_sessions_by_status_value
+      - record: mssql_sessions_by_login
+        expr: mssql_sessions_by_login_value
+      - record: mssql_sessions_by_host
+        expr: mssql_sessions_by_host_value
+      - record: mssql_session_info
+        expr: mssql_session_info_value
+      - record: mssql_blocking_session_info
+        expr: mssql_blocking_session_info_value
+      - record: mssql_long_running_request_info
+        expr: mssql_long_running_request_info_value
+
+      - record: mssql_batch_requests_total
+        expr: mssql_batch_requests_total_value
+      - record: mssql_sql_compilations_total
+        expr: mssql_sql_compilations_total_value
+      - record: mssql_sql_recompilations_total
+        expr: mssql_sql_recompilations_total_value
+      - record: mssql_transactions_total
+        expr: mssql_transactions_total_value
+
+      - record: mssql_wait_time_ms_total
+        expr: mssql_wait_time_ms_total_value
+      - record: mssql_signal_wait_time_ms_total
+        expr: mssql_signal_wait_time_ms_total_value
+      - record: mssql_lock_waits_total
+        expr: mssql_lock_waits_total_value
+      - record: mssql_deadlocks_total
+        expr: mssql_deadlocks_total_value
+
+      - record: mssql_connections
+        expr: mssql_connections_value
+      - record: mssql_memory_grants_pending
+        expr: mssql_memory_grants_pending_value
+      - record: mssql_page_life_expectancy_seconds
+        expr: mssql_page_life_expectancy_seconds_value
+      - record: mssql_buffer_cache_hit_ratio
+        expr: mssql_buffer_cache_hit_ratio_value
+
+      - record: mssql_database_state
+        expr: mssql_database_state_value
+      - record: mssql_database_size_bytes
+        expr: mssql_database_size_bytes_value
+      - record: mssql_database_data_used_bytes
+        expr: mssql_database_data_used_bytes_value
+      - record: mssql_database_data_used_percent
+        expr: mssql_database_data_used_percent_value
+      - record: mssql_database_log_used_bytes
+        expr: mssql_database_log_used_bytes_value
+      - record: mssql_database_log_used_percent
+        expr: mssql_database_log_used_percent_value
+      - record: mssql_database_file_size_bytes
+        expr: mssql_database_file_size_bytes_value
+
+      - record: mssql_tempdb_size_bytes
+        expr: mssql_tempdb_size_bytes_value
+      - record: mssql_tempdb_used_bytes
+        expr: mssql_tempdb_used_bytes_value
+      - record: mssql_tempdb_user_object_bytes
+        expr: mssql_tempdb_user_object_bytes_value
+      - record: mssql_tempdb_internal_object_bytes
+        expr: mssql_tempdb_internal_object_bytes_value
+      - record: mssql_tempdb_version_store_bytes
+        expr: mssql_tempdb_version_store_bytes_value
+
+      - record: mssql_io_reads_total
+        expr: mssql_io_reads_total_value
+      - record: mssql_io_writes_total
+        expr: mssql_io_writes_total_value
+      - record: mssql_io_read_latency_ms_total
+        expr: mssql_io_read_latency_ms_total_value
+      - record: mssql_io_write_latency_ms_total
+        expr: mssql_io_write_latency_ms_total_value
+
+      - record: mssql_query_cpu_time_ms
+        expr: mssql_query_cpu_time_ms_value
+      - record: mssql_query_duration_ms
+        expr: mssql_query_duration_ms_value
+      - record: mssql_query_logical_reads
+        expr: mssql_query_logical_reads_value
+      - record: mssql_query_execution_count
+        expr: mssql_query_execution_count_value

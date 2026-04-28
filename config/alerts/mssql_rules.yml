@@ -43,7 +43,7 @@ groups:
       # CAPACITY
       # =========================
       - alert: MSSQLDataFileHighUsage
-        expr: mssql_database_data_used_percent{job="mssql"} >= 85
+        expr: mssql_database_data_used_percent{job="mssql"} >= 85 and mssql_database_data_used_percent{job="mssql"} < 95
         for: 5m
         labels:
           severity: warning
@@ -65,7 +65,7 @@ groups:
           description: "{{ $labels.database }} usage {{ $value }}%"
 
       - alert: MSSQLLogFileHighUsage
-        expr: mssql_database_log_used_percent{job="mssql"} >= 80
+        expr: mssql_database_log_used_percent{job="mssql"} >= 80 and mssql_database_log_used_percent{job="mssql"} < 90
         for: 5m
         labels:
           severity: warning
@@ -89,10 +89,16 @@ groups:
       - alert: MSSQLTempDBHighUsage
         expr: |
           (
-            sum by (instance) (mssql_tempdb_used_bytes{job="mssql"})
+            sum by (instance, app, tier, owner) (mssql_tempdb_used_bytes{job="mssql"})
             /
-            clamp_min(sum by (instance) (mssql_tempdb_size_bytes{job="mssql"}), 1)
+            clamp_min(sum by (instance, app, tier, owner) (mssql_tempdb_size_bytes{job="mssql"}), 1)
           ) >= 0.80
+          and
+          (
+            sum by (instance, app, tier, owner) (mssql_tempdb_used_bytes{job="mssql"})
+            /
+            clamp_min(sum by (instance, app, tier, owner) (mssql_tempdb_size_bytes{job="mssql"}), 1)
+          ) < 0.90
         for: 5m
         labels:
           severity: warning
@@ -105,9 +111,9 @@ groups:
       - alert: MSSQLTempDBCriticalUsage
         expr: |
           (
-            sum by (instance) (mssql_tempdb_used_bytes{job="mssql"})
+            sum by (instance, app, tier, owner) (mssql_tempdb_used_bytes{job="mssql"})
             /
-            clamp_min(sum by (instance) (mssql_tempdb_size_bytes{job="mssql"}), 1)
+            clamp_min(sum by (instance, app, tier, owner) (mssql_tempdb_size_bytes{job="mssql"}), 1)
           ) >= 0.90
         for: 5m
         labels:
@@ -122,7 +128,7 @@ groups:
       # PERFORMANCE
       # =========================
       - alert: MSSQLBlockingSession
-        expr: mssql_blocked_sessions{job="mssql"} > 0
+        expr: mssql_blocked_sessions{job="mssql"} > 0 and mssql_blocked_sessions{job="mssql"} < 5
         for: 3m
         labels:
           severity: warning
@@ -165,6 +171,68 @@ groups:
           summary: "Long running query on {{ $labels.instance }}"
           description: "Query running > 5 minutes"
 
+      - alert: MSSQLHighWaitTimeRate
+        expr: |
+          sum by (instance, app, tier, owner) (
+            rate(mssql_wait_time_ms_total{job="mssql"}[5m])
+          ) > 5000
+        for: 10m
+        labels:
+          severity: warning
+          category: wait
+          db_type: mssql
+        annotations:
+          summary: "High SQL Server wait time on {{ $labels.instance }}"
+          description: "Total wait time rate > 5000 ms/sec. Check top wait types and top SQL."
+
+      - alert: MSSQLHighSignalWaitRatio
+        expr: |
+          (
+            sum by (instance, app, tier, owner) (rate(mssql_signal_wait_time_ms_total{job="mssql"}[5m]))
+            /
+            clamp_min(sum by (instance, app, tier, owner) (rate(mssql_wait_time_ms_total{job="mssql"}[5m])), 1)
+          ) > 0.25
+        for: 10m
+        labels:
+          severity: warning
+          category: cpu
+          db_type: mssql
+        annotations:
+          summary: "High SQL Server signal wait ratio on {{ $labels.instance }}"
+          description: "Signal waits are > 25% of total waits. Check CPU pressure and runnable workload."
+
+      - alert: MSSQLReadLatencyHigh
+        expr: |
+          (
+            sum by (instance, database, app, tier, owner) (rate(mssql_io_read_latency_ms_total{job="mssql"}[5m]))
+            /
+            clamp_min(sum by (instance, database, app, tier, owner) (rate(mssql_io_reads_total{job="mssql"}[5m])), 1)
+          ) > 20
+        for: 10m
+        labels:
+          severity: warning
+          category: io
+          db_type: mssql
+        annotations:
+          summary: "SQL Server read latency high on {{ $labels.instance }}"
+          description: "Database {{ $labels.database }} read latency > 20ms/op."
+
+      - alert: MSSQLWriteLatencyHigh
+        expr: |
+          (
+            sum by (instance, database, app, tier, owner) (rate(mssql_io_write_latency_ms_total{job="mssql"}[5m]))
+            /
+            clamp_min(sum by (instance, database, app, tier, owner) (rate(mssql_io_writes_total{job="mssql"}[5m])), 1)
+          ) > 20
+        for: 10m
+        labels:
+          severity: warning
+          category: io
+          db_type: mssql
+        annotations:
+          summary: "SQL Server write latency high on {{ $labels.instance }}"
+          description: "Database {{ $labels.database }} write latency > 20ms/op."
+
       # =========================
       # MEMORY
       # =========================
@@ -189,6 +257,17 @@ groups:
         annotations:
           summary: "Low buffer cache hit ratio on {{ $labels.instance }}"
           description: "Buffer cache hit ratio < 90%"
+
+      - alert: MSSQLPageLifeExpectancyLow
+        expr: mssql_page_life_expectancy_seconds{job="mssql"} < 300
+        for: 10m
+        labels:
+          severity: warning
+          category: memory
+          db_type: mssql
+        annotations:
+          summary: "Low page life expectancy on {{ $labels.instance }}"
+          description: "Page life expectancy < 300 seconds. Check memory pressure and I/O."
 
       # =========================
       # CONNECTION

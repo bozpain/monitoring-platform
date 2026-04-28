@@ -19,23 +19,43 @@ metricsdesc = { value = "Blocked sessions" }
 request = "SELECT COUNT(*) AS value FROM v$session WHERE blocking_session IS NOT NULL"
 
 [[metric]]
+context = "oracle_sessions_used_percent"
+metricsdesc = { value = "Oracle sessions resource usage percent" }
+request = """
+SELECT
+  ROUND(current_utilization / NULLIF(TO_NUMBER(limit_value), 0) * 100, 2) AS value
+FROM v$resource_limit
+WHERE resource_name = 'sessions'
+AND REGEXP_LIKE(limit_value, '^[0-9]+$')
+"""
+
+[[metric]]
+context = "oracle_deadlocks_total"
+metricsdesc = { value = "Cumulative Oracle enqueue deadlocks" }
+request = """
+SELECT value AS value
+FROM v$sysstat
+WHERE name = 'enqueue deadlocks'
+"""
+
+[[metric]]
 context = "oracle_ash_like_wait_class"
 labels = ["wait_class"]
 metricsdesc = { value = "ASH-like active sessions by wait class" }
-request = "
+request = """
 SELECT wait_class, COUNT(*) AS value
 FROM v$session
 WHERE status = 'ACTIVE'
 AND wait_class IS NOT NULL
 AND wait_class <> 'Idle'
 GROUP BY wait_class
-"
+"""
 
 [[metric]]
 context = "oracle_ash_like_wait_event"
 labels = ["wait_class", "event"]
 metricsdesc = { value = "ASH-like active sessions by wait event" }
-request = "
+request = """
 SELECT wait_class, event, COUNT(*) AS value
 FROM v$session
 WHERE status = 'ACTIVE'
@@ -43,13 +63,13 @@ AND wait_class IS NOT NULL
 AND wait_class <> 'Idle'
 AND event IS NOT NULL
 GROUP BY wait_class, event
-"
+"""
 
 [[metric]]
 context = "oracle_active_sql"
 labels = ["sql_id", "username", "program"]
 metricsdesc = { value = "Active sessions by SQL ID" }
-request = "
+request = """
 SELECT NVL(s.sql_id, 'UNKNOWN') AS sql_id,
        NVL(s.username, 'UNKNOWN') AS username,
        SUBSTR(NVL(s.program, 'UNKNOWN'), 1, 60) AS program,
@@ -59,13 +79,13 @@ WHERE s.status = 'ACTIVE'
 GROUP BY NVL(s.sql_id, 'UNKNOWN'),
          NVL(s.username, 'UNKNOWN'),
          SUBSTR(NVL(s.program, 'UNKNOWN'), 1, 60)
-"
+"""
 
 [[metric]]
 context = "oracle_blocking_tree"
 labels = ["blocked_sid", "blocking_sid", "blocked_user", "blocking_status", "event"]
 metricsdesc = { value = "Blocking session relationship" }
-request = "
+request = """
 SELECT TO_CHAR(s.sid) AS blocked_sid,
        TO_CHAR(s.blocking_session) AS blocking_sid,
        NVL(s.username, 'UNKNOWN') AS blocked_user,
@@ -74,53 +94,53 @@ SELECT TO_CHAR(s.sid) AS blocked_sid,
        1 AS value
 FROM v$session s
 WHERE s.blocking_session IS NOT NULL
-"
+"""
 
 [[metric]]
 context = "oracle_db_time_per_sec"
 metricsdesc = { value = "Database time per second" }
-request = "
+request = """
 SELECT value AS value
 FROM v$sysmetric
 WHERE metric_name = 'Database Time Per Sec'
 AND group_id = 2
 AND rownum = 1
-"
+"""
 
 [[metric]]
 context = "oracle_cpu_usage_per_sec"
 metricsdesc = { value = "CPU usage per second" }
-request = "
+request = """
 SELECT value AS value
 FROM v$sysmetric
 WHERE metric_name = 'CPU Usage Per Sec'
 AND group_id = 2
 AND rownum = 1
-"
+"""
 
 [[metric]]
 context = "oracle_logical_reads"
 metricsdesc = { value = "Session logical reads" }
-request = "
+request = """
 SELECT value AS value
 FROM v$sysstat
 WHERE name = 'session logical reads'
-"
+"""
 
 [[metric]]
 context = "oracle_physical_reads"
 metricsdesc = { value = "Physical reads" }
-request = "
+request = """
 SELECT value AS value
 FROM v$sysstat
 WHERE name = 'physical reads'
-"
+"""
 
 [[metric]]
 context = "oracle_top_sql_elapsed"
 labels = ["sql_id"]
 metricsdesc = { value = "Top SQL elapsed time" }
-request = "
+request = """
 SELECT sql_id, elapsed_time AS value
 FROM (
   SELECT sql_id, elapsed_time
@@ -129,13 +149,13 @@ FROM (
   ORDER BY elapsed_time DESC
 )
 WHERE rownum <= 10
-"
+"""
 
 [[metric]]
 context = "oracle_top_sql_buffer_gets"
 labels = ["sql_id"]
 metricsdesc = { value = "Top SQL buffer gets" }
-request = "
+request = """
 SELECT sql_id, buffer_gets AS value
 FROM (
   SELECT sql_id, buffer_gets
@@ -144,13 +164,13 @@ FROM (
   ORDER BY buffer_gets DESC
 )
 WHERE rownum <= 10
-"
+"""
 
 [[metric]]
 context = "oracle_top_sql_disk_reads"
 labels = ["sql_id"]
 metricsdesc = { value = "Top SQL disk reads" }
-request = "
+request = """
 SELECT sql_id, disk_reads AS value
 FROM (
   SELECT sql_id, disk_reads
@@ -159,13 +179,13 @@ FROM (
   ORDER BY disk_reads DESC
 )
 WHERE rownum <= 10
-"
+"""
 
 [[metric]]
 context = "oracle_top_sql_executions"
 labels = ["sql_id"]
 metricsdesc = { value = "Top SQL executions" }
-request = "
+request = """
 SELECT sql_id, executions AS value
 FROM (
   SELECT sql_id, executions
@@ -174,58 +194,58 @@ FROM (
   ORDER BY executions DESC
 )
 WHERE rownum <= 10
-"
+"""
 
 [[metric]]
 context = "oracle_sessions_by_user"
 labels = ["username"]
 metricsdesc = { value = "Sessions by username" }
-request = "
+request = """
 SELECT NVL(username, 'BACKGROUND') AS username,
        COUNT(*) AS value
 FROM v$session
 GROUP BY NVL(username, 'BACKGROUND')
-"
+"""
 
 [[metric]]
 context = "oracle_sessions_by_program"
 labels = ["program"]
 metricsdesc = { value = "Sessions by program" }
-request = "
+request = """
 SELECT SUBSTR(NVL(program, 'UNKNOWN'), 1, 80) AS program,
        COUNT(*) AS value
 FROM v$session
 GROUP BY SUBSTR(NVL(program, 'UNKNOWN'), 1, 80)
-"
+"""
 
 [[metric]]
 context = "oracle_sessions_by_machine"
 labels = ["machine"]
 metricsdesc = { value = "Sessions by machine" }
-request = "
+request = """
 SELECT SUBSTR(NVL(machine, 'UNKNOWN'), 1, 80) AS machine,
        COUNT(*) AS value
 FROM v$session
 GROUP BY SUBSTR(NVL(machine, 'UNKNOWN'), 1, 80)
-"
+"""
 
 [[metric]]
 context = "oracle_sessions_by_wait_class"
 labels = ["wait_class"]
 metricsdesc = { value = "Sessions by wait class" }
-request = "
+request = """
 SELECT NVL(wait_class, 'UNKNOWN') AS wait_class,
        COUNT(*) AS value
 FROM v$session
 WHERE status = 'ACTIVE'
 GROUP BY NVL(wait_class, 'UNKNOWN')
-"
+"""
 
 [[metric]]
 context = "oracle_long_running_sessions"
 labels = ["sid", "serial", "username", "program", "machine", "status", "event", "sql_id"]
 metricsdesc = { value = "Long running active sessions in seconds" }
-request = "
+request = """
 SELECT TO_CHAR(sid) AS sid,
        TO_CHAR(serial#) AS serial,
        NVL(username, 'UNKNOWN') AS username,
@@ -239,13 +259,13 @@ FROM v$session
 WHERE status = 'ACTIVE'
 AND type = 'USER'
 AND last_call_et >= 300
-"
+"""
 
 [[metric]]
 context = "oracle_top_sql_cpu_time"
 labels = ["sql_id"]
 metricsdesc = { value = "Top SQL CPU time" }
-request = "
+request = """
 SELECT sql_id, cpu_time AS value
 FROM (
   SELECT sql_id, cpu_time
@@ -254,13 +274,13 @@ FROM (
   ORDER BY cpu_time DESC
 )
 WHERE rownum <= 10
-"
+"""
 
 [[metric]]
 context = "oracle_top_sql_parse_calls"
 labels = ["sql_id"]
 metricsdesc = { value = "Top SQL parse calls" }
-request = "
+request = """
 SELECT sql_id, parse_calls AS value
 FROM (
   SELECT sql_id, parse_calls
@@ -269,13 +289,13 @@ FROM (
   ORDER BY parse_calls DESC
 )
 WHERE rownum <= 10
-"
+"""
 
 [[metric]]
 context = "oracle_top_sql_rows_processed"
 labels = ["sql_id"]
 metricsdesc = { value = "Top SQL rows processed" }
-request = "
+request = """
 SELECT sql_id, rows_processed AS value
 FROM (
   SELECT sql_id, rows_processed
@@ -284,13 +304,13 @@ FROM (
   ORDER BY rows_processed DESC
 )
 WHERE rownum <= 10
-"
+"""
 
 [[metric]]
 context = "oracle_top_sql_version_count"
 labels = ["sql_id"]
 metricsdesc = { value = "Top SQL version count" }
-request = "
+request = """
 SELECT sql_id, version_count AS value
 FROM (
   SELECT sql_id, version_count
@@ -299,13 +319,13 @@ FROM (
   ORDER BY version_count DESC
 )
 WHERE rownum <= 10
-"
+"""
 
 [[metric]]
 context = "oracle_sql_plan_hash"
 labels = ["sql_id", "plan_hash_value"]
 metricsdesc = { value = "SQL plan hash value mapping" }
-request = "
+request = """
 SELECT sql_id,
        TO_CHAR(plan_hash_value) AS plan_hash_value,
        1 AS value
@@ -317,13 +337,13 @@ FROM (
   ORDER BY last_active_time DESC
 )
 WHERE rownum <= 50
-"
+"""
 
 [[metric]]
 context = "oracle_tablespace_usage"
 labels = ["tablespace_name", "contents", "status"]
 metricsdesc = { used_percent = "Tablespace used percent", used_gb = "Tablespace used GB", free_gb = "Tablespace free GB", total_gb = "Tablespace total GB" }
-request = "
+request = """
 SELECT df.tablespace_name,
        NVL(ts.contents, 'UNKNOWN') AS contents,
        NVL(ts.status, 'UNKNOWN') AS status,
@@ -342,13 +362,13 @@ LEFT JOIN (
   GROUP BY tablespace_name
 ) fs ON df.tablespace_name = fs.tablespace_name
 LEFT JOIN dba_tablespaces ts ON df.tablespace_name = ts.tablespace_name
-"
+"""
 
 [[metric]]
 context = "oracle_temp_usage"
 labels = ["tablespace_name"]
 metricsdesc = { used_percent = "Temporary tablespace used percent", used_gb = "Temporary tablespace used GB", total_gb = "Temporary tablespace total GB" }
-request = "
+request = """
 SELECT tf.tablespace_name,
        ROUND(NVL(tu.used_bytes, 0) / tf.total_bytes * 100, 2) AS used_percent,
        ROUND(NVL(tu.used_bytes, 0) / 1024 / 1024 / 1024, 2) AS used_gb,
@@ -363,46 +383,46 @@ LEFT JOIN (
   FROM v$temp_space_header
   GROUP BY tablespace_name
 ) tu ON tf.tablespace_name = tu.tablespace_name
-"
+"""
 
 [[metric]]
 context = "oracle_fra_usage"
 labels = ["file_type"]
 metricsdesc = { used_percent = "FRA used percent by file type", used_gb = "FRA used GB by file type", reclaimable_gb = "FRA reclaimable GB by file type" }
-request = "
+request = """
 SELECT file_type,
        percent_space_used AS used_percent,
        ROUND(space_used / 1024 / 1024 / 1024, 2) AS used_gb,
        ROUND(space_reclaimable / 1024 / 1024 / 1024, 2) AS reclaimable_gb
 FROM v$flash_recovery_area_usage
-"
+"""
 
 [[metric]]
 context = "oracle_fra_limit"
 metricsdesc = { value = "FRA limit GB" }
-request = "
+request = """
 SELECT ROUND(space_limit / 1024 / 1024 / 1024, 2) AS value
 FROM v$recovery_file_dest
-"
+"""
 
 [[metric]]
 context = "oracle_rac_instance_status"
 labels = ["inst_id", "instance_name", "host_name", "status"]
 metricsdesc = { value = "RAC instance status" }
-request = "
+request = """
 SELECT TO_CHAR(inst_id) AS inst_id,
        instance_name,
        host_name,
        status,
        1 AS value
 FROM gv$instance
-"
+"""
 
 [[metric]]
 context = "oracle_rac_active_sessions"
 labels = ["inst_id", "instance_name"]
 metricsdesc = { value = "RAC active sessions by instance" }
-request = "
+request = """
 SELECT TO_CHAR(s.inst_id) AS inst_id,
        i.instance_name,
        COUNT(*) AS value
@@ -410,13 +430,13 @@ FROM gv$session s
 JOIN gv$instance i ON s.inst_id = i.inst_id
 WHERE s.status = 'ACTIVE'
 GROUP BY s.inst_id, i.instance_name
-"
+"""
 
 [[metric]]
 context = "oracle_rac_blocked_sessions"
 labels = ["inst_id", "instance_name"]
 metricsdesc = { value = "RAC blocked sessions by instance" }
-request = "
+request = """
 SELECT TO_CHAR(s.inst_id) AS inst_id,
        i.instance_name,
        COUNT(*) AS value
@@ -424,13 +444,13 @@ FROM gv$session s
 JOIN gv$instance i ON s.inst_id = i.inst_id
 WHERE s.blocking_session IS NOT NULL
 GROUP BY s.inst_id, i.instance_name
-"
+"""
 
 [[metric]]
 context = "oracle_rac_wait_class"
 labels = ["inst_id", "instance_name", "wait_class"]
 metricsdesc = { value = "RAC active sessions by wait class" }
-request = "
+request = """
 SELECT TO_CHAR(s.inst_id) AS inst_id,
        i.instance_name,
        NVL(s.wait_class, 'UNKNOWN') AS wait_class,
@@ -440,13 +460,13 @@ JOIN gv$instance i ON s.inst_id = i.inst_id
 WHERE s.status = 'ACTIVE'
 AND NVL(s.wait_class, 'UNKNOWN') <> 'Idle'
 GROUP BY s.inst_id, i.instance_name, NVL(s.wait_class, 'UNKNOWN')
-"
+"""
 
 [[metric]]
 context = "oracle_rac_gc_waits"
 labels = ["inst_id", "instance_name", "event"]
 metricsdesc = { value = "RAC global cache waits" }
-request = "
+request = """
 SELECT TO_CHAR(s.inst_id) AS inst_id,
        i.instance_name,
        s.event,
@@ -456,26 +476,26 @@ JOIN gv$instance i ON s.inst_id = i.inst_id
 WHERE s.status = 'ACTIVE'
 AND s.event LIKE 'gc%'
 GROUP BY s.inst_id, i.instance_name, s.event
-"
+"""
 
 [[metric]]
 context = "oracle_services_status"
 labels = ["inst_id", "name", "network_name"]
 metricsdesc = { value = "Oracle services status by instance" }
-request = "
+request = """
 SELECT TO_CHAR(inst_id) AS inst_id,
        name,
        NVL(network_name, 'UNKNOWN') AS network_name,
        1 AS value
 FROM gv$active_services
 WHERE name NOT LIKE 'SYS$%'
-"
+"""
 
 [[metric]]
 context = "oracle_asm_diskgroup_usage"
 labels = ["name", "state", "type"]
 metricsdesc = { used_percent = "ASM diskgroup used percent", free_gb = "ASM diskgroup free GB", total_gb = "ASM diskgroup total GB" }
-request = "
+request = """
 SELECT name,
        state,
        type,
@@ -483,17 +503,17 @@ SELECT name,
        ROUND(free_mb / 1024, 2) AS free_gb,
        ROUND(total_mb / 1024, 2) AS total_gb
 FROM v$asm_diskgroup
-"
+"""
 
 [[metric]]
 context = "oracle_asm_operation"
 labels = ["group_number", "operation", "state", "power"]
 metricsdesc = { value = "ASM rebalance or operation estimate minutes" }
-request = "
+request = """
 SELECT TO_CHAR(group_number) AS group_number,
        operation,
        state,
        TO_CHAR(power) AS power,
        NVL(est_minutes, 0) AS value
 FROM v$asm_operation
-"
+"""

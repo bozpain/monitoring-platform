@@ -2,6 +2,9 @@ global:
   scrape_interval: 30s
   evaluation_interval: 30s
 
+remote_write:
+  - url: http://localhost:8428/api/v1/write
+
 rule_files:
   - /monitoring/prometheus/conf/alerts/*.yml
 

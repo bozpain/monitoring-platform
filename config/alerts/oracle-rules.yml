@@ -32,7 +32,7 @@ groups:
       # CAPACITY
       # =========================
       - alert: OracleTablespaceHighUsage
-        expr: oracle_tablespace_used_percent{job="oracle"} >= 85
+        expr: oracle_tablespace_used_percent{job="oracle"} >= 85 and oracle_tablespace_used_percent{job="oracle"} < 95
         for: 5m
         labels:
           severity: warning
@@ -40,7 +40,7 @@ groups:
           db_type: oracle
         annotations:
           summary: "Tablespace high usage on {{ $labels.instance }}"
-          description: "{{ $labels.tablespace }} usage {{ $value }}%"
+          description: "{{ $labels.tablespace_name }} usage {{ $value }}%"
 
       - alert: OracleTablespaceCriticalUsage
         expr: oracle_tablespace_used_percent{job="oracle"} >= 95
@@ -51,10 +51,10 @@ groups:
           db_type: oracle
         annotations:
           summary: "Tablespace critical usage on {{ $labels.instance }}"
-          description: "{{ $labels.tablespace }} usage {{ $value }}%"
+          description: "{{ $labels.tablespace_name }} usage {{ $value }}%"
 
       - alert: OracleArchiveHighUsage
-        expr: oracle_archivelog_destination_used_percent{job="oracle"} >= 85
+        expr: oracle_archivelog_destination_used_percent{job="oracle"} >= 85 and oracle_archivelog_destination_used_percent{job="oracle"} < 95
         for: 5m
         labels:
           severity: warning
@@ -75,11 +75,33 @@ groups:
           summary: "Archive usage critical on {{ $labels.instance }}"
           description: "Archive usage {{ $value }}%"
 
+      - alert: OracleTempTablespaceHighUsage
+        expr: oracle_temp_usage_used_percent{job="oracle"} >= 80 and oracle_temp_usage_used_percent{job="oracle"} < 90
+        for: 5m
+        labels:
+          severity: warning
+          category: capacity
+          db_type: oracle
+        annotations:
+          summary: "Temporary tablespace high usage on {{ $labels.instance }}"
+          description: "{{ $labels.tablespace_name }} temp usage {{ $value }}%"
+
+      - alert: OracleTempTablespaceCriticalUsage
+        expr: oracle_temp_usage_used_percent{job="oracle"} >= 90
+        for: 5m
+        labels:
+          severity: critical
+          category: capacity
+          db_type: oracle
+        annotations:
+          summary: "Temporary tablespace critical usage on {{ $labels.instance }}"
+          description: "{{ $labels.tablespace_name }} temp usage {{ $value }}%"
+
       # =========================
       # SESSION
       # =========================
       - alert: OracleSessionHigh
-        expr: oracle_sessions_used_percent{job="oracle"} >= 85
+        expr: oracle_sessions_used_percent{job="oracle"} >= 85 and oracle_sessions_used_percent{job="oracle"} < 95
         for: 5m
         labels:
           severity: warning
@@ -104,7 +126,7 @@ groups:
       # PERFORMANCE / DPA
       # =========================
       - alert: OracleBlockingSession
-        expr: oracle_blocking_sessions{job="oracle"} > 0
+        expr: oracle_blocking_sessions{job="oracle"} > 0 and oracle_blocking_sessions{job="oracle"} < 5
         for: 3m
         labels:
           severity: warning
@@ -147,16 +169,30 @@ groups:
           summary: "Long running query on {{ $labels.instance }}"
           description: "Query running > 5 minutes"
 
-      # =========================
-      # CONNECTION / LOGIN
-      # =========================
-      - alert: OracleLoginFailureSpike
-        expr: increase(oracle_failed_logins_total{job="oracle"}[5m]) > 10
-        for: 0m
+      - alert: OracleHighWaitClassActivity
+        expr: |
+          sum by (instance, wait_class, app, tier, owner) (
+            oracle_ash_like_wait_class_value{job="oracle", wait_class!~"Idle|UNKNOWN"}
+          ) >= 10
+        for: 10m
         labels:
           severity: warning
-          category: security
+          category: wait
           db_type: oracle
         annotations:
-          summary: "Login failure spike on {{ $labels.instance }}"
-          description: "More than 10 failed logins in 5 minutes"
+          summary: "High Oracle wait activity on {{ $labels.instance }}"
+          description: "Wait class {{ $labels.wait_class }} has >= 10 active sessions. Check top waits and SQL activity."
+
+      - alert: OracleHighDBTime
+        expr: |
+          sum by (instance, app, tier, owner) (
+            oracle_db_time_per_sec_value{job="oracle"}
+          ) >= 60
+        for: 10m
+        labels:
+          severity: warning
+          category: wait
+          db_type: oracle
+        annotations:
+          summary: "High Oracle DB time on {{ $labels.instance }}"
+          description: "DB time per second >= 60. Check wait class, top SQL, and host resource pressure."

@@ -14,13 +14,22 @@ echo "[INFO] Generating targets from $INPUT"
 mkdir -p "$OUTPUT_DIR"
 
 # reset files
-echo "" > "$NODE_FILE"
-echo "" > "$ORACLE_FILE"
-echo "" > "$MSSQL_FILE"
+: > "$NODE_FILE"
+: > "$ORACLE_FILE"
+: > "$MSSQL_FILE"
 
 # skip header
 tail -n +2 "$INPUT" | while IFS=',' read -r host ip node oracle mssql app tier owner
 do
+  host="${host//$'\r'/}"
+  ip="${ip//$'\r'/}"
+  node="${node//$'\r'/}"
+  oracle="${oracle//$'\r'/}"
+  mssql="${mssql//$'\r'/}"
+  app="${app//$'\r'/}"
+  tier="${tier//$'\r'/}"
+  owner="${owner//$'\r'/}"
+
   # NODE
   if [ "$node" = "yes" ]; then
     cat >> "$NODE_FILE" <<EOF
@@ -63,7 +72,7 @@ EOF
   if [ "$mssql" = "yes" ]; then
     cat >> "$MSSQL_FILE" <<EOF
 - targets:
-    - "$ip:9399"
+    - "$ip:9182"
   labels:
     service: "mssql"
     environment: "development"

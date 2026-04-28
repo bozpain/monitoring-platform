@@ -1,0 +1,20 @@
+groups:
+  - name: oracle.dpa.recording
+    interval: 30s
+    rules:
+      - record: oracle_up
+        expr: oracle_up_value
+
+      - record: oracle_tablespace_used_percent
+        expr: oracle_tablespace_usage_used_percent
+      - record: oracle_archivelog_destination_used_percent
+        expr: oracle_fra_usage_used_percent{file_type="ARCHIVED LOG"}
+      - record: oracle_sessions_used_percent
+        expr: oracle_sessions_used_percent_value
+
+      - record: oracle_blocking_sessions
+        expr: oracle_sessions_blocked_value
+      - record: oracle_long_running_queries
+        expr: count without (sid, serial, username, program, machine, status, event, sql_id) (oracle_long_running_sessions_value)
+      - record: oracle_deadlocks_total
+        expr: oracle_deadlocks_total_value

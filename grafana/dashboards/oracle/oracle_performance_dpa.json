@@ -17,7 +17,7 @@
           "type": "prometheus",
           "uid": "${DS_PROMETHEUS}"
         },
-        "query": "label_values(up{job=\"oracle_exporter\"}, instance)",
+        "query": "label_values(up{job=\"oracle\"}, instance)",
         "refresh": 1,
         "includeAll": true,
         "multi": true,
@@ -42,7 +42,7 @@
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "min(up{job=\"oracle_exporter\", instance=~\"$instance\"})",
+          "expr": "min(up{job=\"oracle\", instance=~\"$instance\"})",
           "legendFormat": "up"
         }
       ],

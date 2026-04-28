@@ -115,7 +115,7 @@
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "sum(mssql_sessions_active_value{instance=~\"$instance\"})"
+          "expr": "sum(mssql_active_sessions{instance=~\"$instance\"})"
         }
       ],
       "options": {
@@ -132,7 +132,7 @@
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "sum(mssql_sessions_blocked_value{instance=~\"$instance\"})"
+          "expr": "sum(mssql_blocked_sessions{instance=~\"$instance\"})"
         }
       ],
       "fieldConfig": {
@@ -161,7 +161,7 @@
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "count(mssql_database_state_value{instance=~\"$instance\"})"
+          "expr": "count(mssql_database_state{instance=~\"$instance\"})"
         }
       ],
       "options": {
@@ -178,7 +178,7 @@
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "sum by (instance) (mssql_sessions_active_value{instance=~\"$instance\"})",
+          "expr": "sum by (instance) (mssql_active_sessions{instance=~\"$instance\"})",
           "legendFormat": "{{instance}}"
         }
       ],
@@ -195,7 +195,7 @@
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "sum by (instance) (mssql_sessions_blocked_value{instance=~\"$instance\"})",
+          "expr": "sum by (instance) (mssql_blocked_sessions{instance=~\"$instance\"})",
           "legendFormat": "{{instance}}"
         }
       ],
@@ -250,8 +250,8 @@
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "mssql_database_state_value{instance=~\"$instance\"}",
-          "legendFormat": "{{database_name}} {{state_desc}} {{recovery_model_desc}}",
+          "expr": "mssql_database_state{instance=~\"$instance\"}",
+          "legendFormat": "{{database}} {{state_desc}} {{recovery_model_desc}}",
           "format": "table",
           "instant": true
         }

@@ -17,7 +17,7 @@
           "type": "prometheus",
           "uid": "${DS_PROMETHEUS}"
         },
-        "query": "label_values(up{job=\"oracle_exporter\"}, instance)",
+        "query": "label_values(up{job=\"oracle\"}, instance)",
         "refresh": 1,
         "includeAll": true,
         "multi": true,
@@ -42,7 +42,7 @@
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "count(up{job=\"oracle_exporter\", instance=~\"$instance\"})"
+          "expr": "count(up{job=\"oracle\", instance=~\"$instance\"})"
         }
       ],
       "options": {
@@ -59,7 +59,7 @@
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "count(up{job=\"oracle_exporter\", instance=~\"$instance\"} == 1)"
+          "expr": "count(up{job=\"oracle\", instance=~\"$instance\"} == 1)"
         }
       ],
       "fieldConfig": {
@@ -87,7 +87,7 @@
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "count(up{job=\"oracle_exporter\", instance=~\"$instance\"} == 0)"
+          "expr": "count(up{job=\"oracle\", instance=~\"$instance\"} == 0)"
         }
       ],
       "fieldConfig": {
@@ -241,7 +241,7 @@
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "up{job=\"oracle_exporter\", instance=~\"$instance\"}",
+          "expr": "up{job=\"oracle\", instance=~\"$instance\"}",
           "legendFormat": "{{instance}}",
           "format": "table",
           "instant": true

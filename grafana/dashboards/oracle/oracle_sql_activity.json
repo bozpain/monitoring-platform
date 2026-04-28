@@ -17,7 +17,7 @@
           "type": "prometheus",
           "uid": "${DS_PROMETHEUS}"
         },
-        "query": "label_values(up{job=\"oracle_exporter\"}, instance)",
+        "query": "label_values(up{job=\"oracle\"}, instance)",
         "refresh": 1,
         "includeAll": true,
         "multi": true

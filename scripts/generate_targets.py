@@ -189,7 +189,7 @@ def main() -> None:
                     tier=tier,
                     owner=owner,
                 )
-                target = f"{ip}:9399"
+                target = f"{ip}:9182"
 
                 if (service, target) in seen_ip_service:
                     fail(f"Duplicate target detected: {target} for {service}")

@@ -1,0 +1,8 @@
+component,recommended_version,file_name,sha256,source_url,approved_by,approved_date,notes
+prometheus,TBD,prometheus-<version>.linux-amd64.tar.gz,TBD,TBD,TBD,TBD,Required by 03_install_prometheus.sh
+victoriametrics,TBD,victoria-metrics-linux-amd64-<version>.tar.gz,TBD,TBD,TBD,TBD,Required by 02_install_victoriametrics.sh
+alertmanager,TBD,alertmanager-<version>.linux-amd64.tar.gz,TBD,TBD,TBD,TBD,Required by 06_install_alertmanager.sh
+node_exporter,TBD,node_exporter-<version>.linux-amd64.tar.gz,TBD,TBD,TBD,TBD,Required by 04_install_node_exporter.sh
+oracledb_exporter,TBD,oracledb_exporter-<version>.linux-amd64.tar.gz,TBD,TBD,TBD,TBD,Required by 07_install_oracle_exporter.sh
+mssql_exporter,TBD,mssql_exporter-<version>.linux-amd64.tar.gz,TBD,TBD,TBD,TBD,Required by 08_install_mssql_exporter.sh
+grafana,TBD,grafana-<version>.x86_64.rpm,TBD,TBD,TBD,TBD,Required by 05_install_grafana.sh

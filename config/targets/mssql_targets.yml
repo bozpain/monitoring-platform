@@ -1,5 +1,5 @@
 - targets:
-    - "10.243.176.251:9399"
+    - "10.243.176.251:9182"
   labels:
     service: "mssql"
     environment: "development"
@@ -12,7 +12,7 @@
     owner: "team-data"
 
 - targets:
-    - "10.243.176.252:9399"
+    - "10.243.176.252:9182"
   labels:
     service: "mssql"
     environment: "development"
