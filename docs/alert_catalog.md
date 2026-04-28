@@ -62,6 +62,13 @@ This catalog describes the default alert policy. Thresholds are conservative sta
 | `AlertmanagerConfigReloadFailed` | warning | last config reload unsuccessful for 5m | Alertmanager is not running latest valid config |
 | `AlertmanagerNotificationFailures` | warning | failed notifications for 5m | Email or notification receiver path may be broken |
 
+## Grafana Alerts
+
+| Alert | Severity | Trigger | Why it matters |
+| --- | --- | --- | --- |
+| `GrafanaDown` | critical | `up{job="grafana"} == 0` for 10m | Dashboards may be unavailable |
+| `GrafanaDatasourceRequestErrors` | warning | datasource 5xx responses for 5m | Grafana cannot query datasource cleanly |
+
 ## Oracle Alerts
 
 | Alert | Severity | Trigger | Why it matters |

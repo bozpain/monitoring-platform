@@ -63,8 +63,9 @@ if [ ! -f "$ORACLE_DIR/oracle_exporter.env" ]; then
   cat > "$ORACLE_DIR/oracle_exporter.env" <<EOF
 # Oracle exporter connection string
 # Format:
-# DATA_SOURCE_NAME=username/password@//host:port/service_name
-DATA_SOURCE_NAME=monitoring_user/CHANGE_ME@//db-host:1521/service_name
+# DATA_SOURCE_NAME=oracle://username:password@host:1521/service_name
+# URL-escape special characters in the password.
+DATA_SOURCE_NAME=oracle://monitoring_user:CHANGE_ME@db-host:1521/service_name
 EOF
   echo "[WARN] Created template env: $ORACLE_DIR/oracle_exporter.env"
   echo "[WARN] Edit DATA_SOURCE_NAME before starting exporter"
@@ -72,6 +73,22 @@ fi
 
 chmod +x "$ORACLE_DIR/oracledb_exporter"
 chmod 600 "$ORACLE_DIR/oracle_exporter.env"
+
+echo "[INFO] Checking Oracle Exporter binary..."
+"$ORACLE_DIR/oracledb_exporter" --version || true
+
+ensure_env_key() {
+  local key=$1
+  local value=$2
+
+  if ! grep -q "^${key}=" "$ORACLE_DIR/oracle_exporter.env"; then
+    echo "${key}=${value}" >> "$ORACLE_DIR/oracle_exporter.env"
+  fi
+}
+
+ensure_env_key "ORACLE_EXPORTER_WEB_LISTEN_ADDRESS" ":9161"
+ensure_env_key "ORACLE_EXPORTER_TELEMETRY_PATH" "/metrics"
+ensure_env_key "ORACLE_EXPORTER_LOG_LEVEL" "info"
 
 chown -R monitoring:monitoring "$ORACLE_DIR" "$LOG_DIR"
 
@@ -83,8 +100,22 @@ fi
 echo "[INFO] Installing systemd service..."
 cp "$SERVICE_SRC" "$SERVICE_DST"
 
+echo "[INFO] Validating systemd unit..."
+systemd-analyze verify "$SERVICE_DST" || true
+
 systemctl daemon-reload
 systemctl enable oracle_exporter
+
+if grep -q "CHANGE_ME" "$ORACLE_DIR/oracle_exporter.env"; then
+  echo "[WARN] Oracle DATA_SOURCE_NAME still contains CHANGE_ME"
+  echo "[WARN] Service enabled but not started. Edit env first, then restart oracle_exporter."
+else
+  echo "[INFO] Starting Oracle Exporter..."
+  systemctl restart oracle_exporter
+  systemctl status oracle_exporter --no-pager
+  curl -fsS http://localhost:9161/metrics >/dev/null
+  curl -fsS http://localhost:9161/metrics | grep -E '^(oracle_up|oracledb_up)' >/dev/null || true
+fi
 
 echo "[DONE] Oracle Exporter installed"
 echo "[NEXT] Edit connection file:"

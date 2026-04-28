@@ -278,8 +278,10 @@ Edit:
 Example:
 
 ```bash
-DATA_SOURCE_NAME=monitoring_user/CHANGE_ME_STRONG_PASSWORD@//db-host:1521/service_name
+DATA_SOURCE_NAME=oracle://monitoring_user:CHANGE_ME_STRONG_PASSWORD@db-host:1521/service_name
 ```
+
+URL-escape special characters in the password, especially `@`, `/`, `:`, `#`, and `%`.
 
 Validate:
 
@@ -342,7 +344,117 @@ curl http://localhost:9182/metrics | grep '^mssql_up'
 
 Use `encrypt=true` or the organization standard if SQL Server requires TLS.
 
-## 8. Oracle Linux 8 Firewall And SELinux
+## 8. Exporter Tuning
+
+Node exporter starts during deployment because it does not need database credentials.
+
+The installer deploys node exporter runtime defaults from:
+
+```text
+config/node_exporter/node_exporter.env.example
+```
+
+Installed path:
+
+```text
+/monitoring/exporters/node/node_exporter.env
+```
+
+Default node exporter tuning:
+
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `NODE_EXPORTER_WEB_LISTEN_ADDRESS` | `:9100` | Listen address |
+| `NODE_EXPORTER_WEB_MAX_REQUESTS` | `20` | Maximum concurrent scrape requests |
+| `NODE_EXPORTER_LOG_LEVEL` | `info` | Runtime log level |
+| `NODE_EXPORTER_FILESYSTEM_MOUNT_POINTS_EXCLUDE` | repo default | Exclude pseudo/container mounts |
+| `NODE_EXPORTER_FILESYSTEM_FS_TYPES_EXCLUDE` | repo default | Exclude pseudo filesystem types |
+
+Oracle exporter tuning is stored in:
+
+```text
+/monitoring/exporters/oracle/oracle_exporter.env
+```
+
+Expected settings:
+
+| Setting | Purpose |
+| --- | --- |
+| `DATA_SOURCE_NAME` | Oracle connection string |
+| `ORACLE_EXPORTER_WEB_LISTEN_ADDRESS` | Listen address |
+| `ORACLE_EXPORTER_TELEMETRY_PATH` | Metrics path |
+| `ORACLE_EXPORTER_LOG_LEVEL` | Runtime log level |
+
+MSSQL exporter tuning is stored in:
+
+```text
+/monitoring/exporters/mssql/mssql_exporter.env
+```
+
+Expected settings:
+
+| Setting | Purpose |
+| --- | --- |
+| `DATA_SOURCE_NAME` | SQL Server connection string |
+| `MSSQL_EXPORTER_WEB_LISTEN_ADDRESS` | Listen address |
+
+The Oracle and MSSQL installers enable services but do not start them while `DATA_SOURCE_NAME` contains `CHANGE_ME`. After setting credentials:
+
+```bash
+sudo systemctl restart oracle_exporter
+sudo systemctl restart mssql_exporter
+curl http://localhost:9161/metrics | grep -E '^(oracle_up|oracledb_up)'
+curl http://localhost:9182/metrics | grep '^mssql_up'
+```
+
+## 9. Grafana Tuning
+
+The installer deploys Grafana runtime defaults from:
+
+```text
+config/grafana/grafana.env.example
+```
+
+Installed path:
+
+```text
+/monitoring/grafana/conf/grafana.env
+```
+
+Default tuning:
+
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `GF_SERVER_HTTP_ADDR` | `0.0.0.0` | Listen address |
+| `GF_SERVER_HTTP_PORT` | `3000` | Listen port |
+| `GF_SERVER_ROOT_URL` | `http://localhost:3000/` | Public URL used in links |
+| `GF_USERS_ALLOW_SIGN_UP` | `false` | Disable self sign-up |
+| `GF_AUTH_ANONYMOUS_ENABLED` | `false` | Disable anonymous access |
+| `GF_METRICS_ENABLED` | `true` | Expose `/metrics` for Prometheus |
+| `GF_DASHBOARDS_MIN_REFRESH_INTERVAL` | `30s` | Prevent overly aggressive refresh |
+| `GF_QUERY_CONCURRENT_QUERY_LIMIT` | `20` | Bound concurrent dashboard queries |
+
+Datasource provisioning:
+
+| Field | Value |
+| --- | --- |
+| Name | `Prometheus` |
+| UID | `Prometheus` |
+| URL | `http://localhost:8428` |
+
+Prometheus scrapes Grafana with `job="grafana"` so Grafana availability and datasource request errors can alert.
+
+After changing Grafana tuning:
+
+```bash
+sudo systemctl restart grafana-server
+curl -fsS http://localhost:3000/api/health
+curl -fsS http://localhost:3000/metrics
+```
+
+Default Grafana login after RPM install is usually `admin / admin`. Change it on first login.
+
+## 10. Oracle Linux 8 Firewall And SELinux
 
 ### Single VM Control Plane Ports
 
@@ -409,9 +521,17 @@ sudo setenforce 0
 
 If the issue disappears in permissive mode, create a proper SELinux policy with the Linux security team instead of leaving SELinux disabled.
 
-## 9. Metric Validation
+## 11. Metric Validation
 
 Run these after deployment and after every inventory change.
+
+Start with the automated health check:
+
+```bash
+sudo ./09_health_check.sh
+```
+
+`PASSED WITH WARNINGS` is acceptable immediately after initial platform install if Oracle or MSSQL exporter credentials still contain `CHANGE_ME`. After DB credentials are configured, rerun the health check and confirm the exporter warnings are gone.
 
 ### Service Discovery
 
@@ -481,7 +601,7 @@ mssql_database_size_value{job="mssql"}
 
 Metric names can differ if exporter versions or custom query naming rules change. If a dashboard panel is empty, confirm the exact metric name from the exporter `/metrics` endpoint first.
 
-## 10. Handover Checklist
+## 12. Handover Checklist
 
 - Offline package manifest completed.
 - SHA256 checksums verified.

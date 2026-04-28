@@ -204,6 +204,32 @@ sudo vi /monitoring/alertmanager/conf/alertmanager.env
 sudo systemctl restart alertmanager
 ```
 
+Node exporter runtime tuning defaults are installed from:
+
+```text
+config/node_exporter/node_exporter.env.example
+```
+
+On the server, tune listen address, max scrape requests, log level, and filesystem exclude patterns here:
+
+```bash
+sudo vi /monitoring/exporters/node/node_exporter.env
+sudo systemctl restart node_exporter
+```
+
+Grafana runtime tuning defaults are installed from:
+
+```text
+config/grafana/grafana.env.example
+```
+
+On the server, tune public URL, sign-up policy, metrics endpoint, and query concurrency here:
+
+```bash
+sudo vi /monitoring/grafana/conf/grafana.env
+sudo systemctl restart grafana-server
+```
+
 ### 5. Configure Database Exporter Credentials
 
 The Oracle and MSSQL exporter installers create template credential files on the server. Edit them before starting the DB exporters:
@@ -219,6 +245,8 @@ Then start:
 sudo systemctl restart oracle_exporter
 sudo systemctl restart mssql_exporter
 ```
+
+Oracle and MSSQL exporter env files also include listen-address tuning values. Keep the default ports unless the Prometheus target files are updated too.
 
 ### 6. Configure Alert Email
 
@@ -261,6 +289,14 @@ Check services:
 ```bash
 sudo ./09_health_check.sh
 ```
+
+Result meaning:
+
+| Result | Meaning |
+| --- | --- |
+| `PASSED` | Core services, endpoints, rules, and remote-write checks passed |
+| `PASSED WITH WARNINGS` | Core platform is running, but optional checks need follow-up, usually Oracle/MSSQL credentials are still placeholders |
+| `FAILED` | At least one required platform service, endpoint, config, or rule check failed |
 
 Open:
 
@@ -318,5 +354,6 @@ docs/operator_handover.md
 - Run the repository scripts from the repo root because they copy relative paths such as `./config`, `./grafana`, and `./systemd`.
 - Prometheus keeps only short local retention (`1d`) and writes long-term data to VictoriaMetrics.
 - Grafana datasource is provisioned to `http://localhost:8428`, so Prometheus `remote_write` must stay enabled.
+- Grafana datasource UID is provisioned as `Prometheus` for dashboard compatibility.
 - Database exporters are installed with template credentials. They should only be started after `DATA_SOURCE_NAME` is correct.
 - DB user grants, offline checksum process, firewall commands, and metric validation are documented in `docs/operator_handover.md`.

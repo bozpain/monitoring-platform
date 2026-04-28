@@ -1,0 +1,26 @@
+groups:
+  - name: grafana.rules
+    interval: 30s
+    rules:
+
+      - alert: GrafanaDown
+        expr: up{job="grafana"} == 0
+        for: 10m
+        labels:
+          severity: critical
+          category: availability
+          service: grafana
+        annotations:
+          summary: "Grafana down on {{ $labels.instance }}"
+          description: "Prometheus cannot scrape Grafana. Dashboards may be unavailable."
+
+      - alert: GrafanaDatasourceRequestErrors
+        expr: rate(grafana_datasource_request_total{job="grafana", status_code=~"5.."}[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          category: datasource
+          service: grafana
+        annotations:
+          summary: "Grafana datasource request errors on {{ $labels.instance }}"
+          description: "Grafana is receiving 5xx responses from a datasource. Check VictoriaMetrics and datasource provisioning."

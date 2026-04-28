@@ -73,6 +73,13 @@ fi
 chmod +x "$MSSQL_DIR/mssql_exporter"
 chmod 600 "$MSSQL_DIR/mssql_exporter.env"
 
+echo "[INFO] Checking MSSQL Exporter binary..."
+"$MSSQL_DIR/mssql_exporter" --version || true
+
+if ! grep -q "^MSSQL_EXPORTER_WEB_LISTEN_ADDRESS=" "$MSSQL_DIR/mssql_exporter.env"; then
+  echo "MSSQL_EXPORTER_WEB_LISTEN_ADDRESS=0.0.0.0:9182" >> "$MSSQL_DIR/mssql_exporter.env"
+fi
+
 chown -R monitoring:monitoring "$MSSQL_DIR" "$LOG_DIR"
 
 if [ ! -f "$SERVICE_SRC" ]; then
@@ -83,8 +90,22 @@ fi
 echo "[INFO] Installing systemd service..."
 cp "$SERVICE_SRC" "$SERVICE_DST"
 
+echo "[INFO] Validating systemd unit..."
+systemd-analyze verify "$SERVICE_DST" || true
+
 systemctl daemon-reload
 systemctl enable mssql_exporter
+
+if grep -q "CHANGE_ME" "$MSSQL_DIR/mssql_exporter.env"; then
+  echo "[WARN] MSSQL DATA_SOURCE_NAME still contains CHANGE_ME"
+  echo "[WARN] Service enabled but not started. Edit env first, then restart mssql_exporter."
+else
+  echo "[INFO] Starting MSSQL Exporter..."
+  systemctl restart mssql_exporter
+  systemctl status mssql_exporter --no-pager
+  curl -fsS http://localhost:9182/metrics >/dev/null
+  curl -fsS http://localhost:9182/metrics | grep '^mssql_up' >/dev/null || true
+fi
 
 echo "[DONE] MSSQL Exporter installed"
 echo "[NEXT] Edit connection file:"

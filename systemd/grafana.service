@@ -7,17 +7,32 @@ Wants=network-online.target
 User=grafana
 Group=grafana
 Type=simple
+EnvironmentFile=/monitoring/grafana/conf/grafana.env
 
 ExecStart=/usr/sbin/grafana-server \
   --config=/etc/grafana/grafana.ini \
-  --homepath=/usr/share/grafana
+  --homepath=/usr/share/grafana \
+  --packaging=rpm \
+  cfg:default.paths.data=/var/lib/grafana \
+  cfg:default.paths.logs=/monitoring/logs/grafana \
+  cfg:default.paths.plugins=/var/lib/grafana/plugins \
+  cfg:default.paths.provisioning=/etc/grafana/provisioning
 
 Restart=always
 RestartSec=5
 LimitNOFILE=65536
+LimitNPROC=65536
+TimeoutStopSec=60
+KillSignal=SIGTERM
 
 StandardOutput=append:/monitoring/logs/grafana/grafana.log
 StandardError=append:/monitoring/logs/grafana/grafana-error.log
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/monitoring/logs/grafana /var/lib/grafana /var/log/grafana
 
 [Install]
 WantedBy=multi-user.target

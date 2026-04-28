@@ -15,7 +15,7 @@
         "type": "query",
         "datasource": {
           "type": "prometheus",
-          "uid": "${DS_PROMETHEUS}"
+          "uid": "Prometheus"
         },
         "query": "label_values(up{job=\"oracle\"}, instance)",
         "refresh": 1,
@@ -39,7 +39,7 @@
       "type": "stat",
       "title": "RAC Instances",
       "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "count(oracle_rac_instance_status_value{instance=~\"$instance\"})"
@@ -56,7 +56,7 @@
       "type": "stat",
       "title": "RAC Active Sessions",
       "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "sum(oracle_rac_active_sessions_value{instance=~\"$instance\"})"
@@ -73,7 +73,7 @@
       "type": "stat",
       "title": "RAC Blocked Sessions",
       "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "sum(oracle_rac_blocked_sessions_value{instance=~\"$instance\"})"
@@ -102,7 +102,7 @@
       "type": "stat",
       "title": "ASM Critical > 90%",
       "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "count(oracle_asm_diskgroup_usage_used_percent{instance=~\"$instance\"} > 90)"
@@ -131,7 +131,7 @@
       "type": "table",
       "title": "RAC Instance Status",
       "gridPos": { "x": 0, "y": 4, "w": 24, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "oracle_rac_instance_status_value{instance=~\"$instance\"}",
@@ -149,7 +149,7 @@
       "type": "timeseries",
       "title": "RAC Active Sessions by Instance",
       "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "sum by (instance_name) (oracle_rac_active_sessions_value{instance=~\"$instance\"})",
@@ -166,7 +166,7 @@
       "type": "timeseries",
       "title": "RAC Blocked Sessions by Instance",
       "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "sum by (instance_name) (oracle_rac_blocked_sessions_value{instance=~\"$instance\"})",
@@ -183,7 +183,7 @@
       "type": "barchart",
       "title": "RAC Wait Class",
       "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "sort_desc(sum by (instance_name, wait_class) (oracle_rac_wait_class_value{instance=~\"$instance\"}))",
@@ -203,7 +203,7 @@
       "type": "barchart",
       "title": "Global Cache Waits",
       "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "sort_desc(sum by (instance_name, event) (oracle_rac_gc_waits_value{instance=~\"$instance\"}))",
@@ -223,7 +223,7 @@
       "type": "table",
       "title": "Oracle Services",
       "gridPos": { "x": 0, "y": 28, "w": 24, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "oracle_services_status_value{instance=~\"$instance\"}",
@@ -241,7 +241,7 @@
       "type": "table",
       "title": "ASM Diskgroup Usage",
       "gridPos": { "x": 0, "y": 36, "w": 24, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "sort_desc(oracle_asm_diskgroup_usage_used_percent{instance=~\"$instance\"})",
@@ -264,7 +264,7 @@
       "type": "timeseries",
       "title": "ASM Diskgroup Used % Trend",
       "gridPos": { "x": 0, "y": 44, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "oracle_asm_diskgroup_usage_used_percent{instance=~\"$instance\"}",
@@ -286,7 +286,7 @@
       "type": "table",
       "title": "ASM Operation / Rebalance",
       "gridPos": { "x": 12, "y": 44, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "oracle_asm_operation_value{instance=~\"$instance\"}",

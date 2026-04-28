@@ -10,16 +10,24 @@ Group=monitoring
 EnvironmentFile=/monitoring/exporters/mssql/mssql_exporter.env
 
 ExecStart=/monitoring/exporters/mssql/mssql_exporter \
-  --web.listen-address=0.0.0.0:9182 \
+  --web.listen-address=${MSSQL_EXPORTER_WEB_LISTEN_ADDRESS} \
   --config.file=/monitoring/exporters/mssql/mssql-metrics.toml
 
 Restart=always
 RestartSec=5
+LimitNOFILE=65536
+LimitNPROC=65536
+TimeoutStopSec=60
+KillSignal=SIGTERM
 
 StandardOutput=append:/monitoring/logs/exporters/mssql_exporter.log
-StandardError=append:/monitoring/logs/exporters/mssql_exporter.err
+StandardError=append:/monitoring/logs/exporters/mssql_exporter-error.log
 
-LimitNOFILE=65535
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+ReadWritePaths=/monitoring/exporters/mssql /monitoring/logs/exporters
 
 [Install]
 WantedBy=multi-user.target

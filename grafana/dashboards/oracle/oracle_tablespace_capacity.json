@@ -15,7 +15,7 @@
         "type": "query",
         "datasource": {
           "type": "prometheus",
-          "uid": "${DS_PROMETHEUS}"
+          "uid": "Prometheus"
         },
         "query": "label_values(up{job=\"oracle\"}, instance)",
         "refresh": 1,
@@ -39,7 +39,7 @@
       "type": "stat",
       "title": "Critical Tablespaces > 90%",
       "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "count(oracle_tablespace_usage_used_percent{instance=~\"$instance\"} > 90)"
@@ -68,7 +68,7 @@
       "type": "stat",
       "title": "Warning Tablespaces > 80%",
       "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "count(oracle_tablespace_usage_used_percent{instance=~\"$instance\"} > 80)"
@@ -97,7 +97,7 @@
       "type": "stat",
       "title": "TEMP Critical > 80%",
       "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "count(oracle_temp_usage_used_percent{instance=~\"$instance\"} > 80)"
@@ -126,7 +126,7 @@
       "type": "stat",
       "title": "FRA Limit GB",
       "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "sum(oracle_fra_limit_value{instance=~\"$instance\"})"
@@ -148,7 +148,7 @@
       "type": "table",
       "title": "Tablespace Usage Detail",
       "gridPos": { "x": 0, "y": 4, "w": 24, "h": 10 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "sort_desc(oracle_tablespace_usage_used_percent{instance=~\"$instance\"})",
@@ -166,7 +166,7 @@
       "type": "barchart",
       "title": "Top Tablespace Used %",
       "gridPos": { "x": 0, "y": 14, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "topk(15, sort_desc(oracle_tablespace_usage_used_percent{instance=~\"$instance\"}))",
@@ -186,7 +186,7 @@
       "type": "barchart",
       "title": "Top Tablespace Free GB",
       "gridPos": { "x": 12, "y": 14, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "topk(15, sort_desc(oracle_tablespace_usage_free_gb{instance=~\"$instance\"}))",
@@ -211,7 +211,7 @@
       "type": "timeseries",
       "title": "Tablespace Used % Trend",
       "gridPos": { "x": 0, "y": 22, "w": 24, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "oracle_tablespace_usage_used_percent{instance=~\"$instance\"}",
@@ -233,7 +233,7 @@
       "type": "table",
       "title": "Temporary Tablespace Usage",
       "gridPos": { "x": 0, "y": 30, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "sort_desc(oracle_temp_usage_used_percent{instance=~\"$instance\"})",
@@ -256,7 +256,7 @@
       "type": "table",
       "title": "FRA Usage by File Type",
       "gridPos": { "x": 12, "y": 30, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "sort_desc(oracle_fra_usage_used_percent{instance=~\"$instance\"})",
@@ -279,7 +279,7 @@
       "type": "timeseries",
       "title": "TEMP Used % Trend",
       "gridPos": { "x": 0, "y": 38, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "oracle_temp_usage_used_percent{instance=~\"$instance\"}",
@@ -301,7 +301,7 @@
       "type": "timeseries",
       "title": "FRA Used % Trend",
       "gridPos": { "x": 12, "y": 38, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "oracle_fra_usage_used_percent{instance=~\"$instance\"}",

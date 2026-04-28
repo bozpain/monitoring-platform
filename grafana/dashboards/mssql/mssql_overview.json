@@ -15,7 +15,7 @@
         "type": "query",
         "datasource": {
           "type": "prometheus",
-          "uid": "${DS_PROMETHEUS}"
+          "uid": "Prometheus"
         },
         "query": "label_values(up{job=\"mssql\"}, instance)",
         "refresh": 1,
@@ -39,7 +39,7 @@
       "type": "stat",
       "title": "Total MSSQL Targets",
       "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "count(up{job=\"mssql\", instance=~\"$instance\"})"
@@ -56,7 +56,7 @@
       "type": "stat",
       "title": "Exporter UP",
       "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "count(up{job=\"mssql\", instance=~\"$instance\"} == 1)"
@@ -84,7 +84,7 @@
       "type": "stat",
       "title": "Exporter Down",
       "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "count(up{job=\"mssql\", instance=~\"$instance\"} == 0)"
@@ -112,7 +112,7 @@
       "type": "stat",
       "title": "Active Requests",
       "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "sum(mssql_active_sessions{instance=~\"$instance\"})"
@@ -129,7 +129,7 @@
       "type": "stat",
       "title": "Blocked Requests",
       "gridPos": { "x": 16, "y": 0, "w": 4, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "sum(mssql_blocked_sessions{instance=~\"$instance\"})"
@@ -158,7 +158,7 @@
       "type": "stat",
       "title": "Database Count",
       "gridPos": { "x": 20, "y": 0, "w": 4, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "count(mssql_database_state{instance=~\"$instance\"})"
@@ -175,7 +175,7 @@
       "type": "timeseries",
       "title": "Active Requests Trend",
       "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "sum by (instance) (mssql_active_sessions{instance=~\"$instance\"})",
@@ -192,7 +192,7 @@
       "type": "timeseries",
       "title": "Blocked Requests Trend",
       "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "sum by (instance) (mssql_blocked_sessions{instance=~\"$instance\"})",
@@ -209,7 +209,7 @@
       "type": "table",
       "title": "MSSQL Target Health",
       "gridPos": { "x": 0, "y": 12, "w": 24, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "up{job=\"mssql\", instance=~\"$instance\"}",
@@ -227,7 +227,7 @@
       "type": "barchart",
       "title": "Top Wait Types",
       "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "topk(15, sort_desc(sum by (wait_type) (mssql_wait_stats_value{instance=~\"$instance\"})))",
@@ -247,7 +247,7 @@
       "type": "table",
       "title": "Database State",
       "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
           "expr": "mssql_database_state{instance=~\"$instance\"}",

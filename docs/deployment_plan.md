@@ -173,6 +173,8 @@ sudo ./09_health_check.sh
 
 Oracle and MSSQL exporter installers create service files and credential templates, but they do not start the exporters until the connection strings are correct.
 
+Node exporter starts immediately because it does not need database credentials. Oracle and MSSQL exporters only start automatically if their `DATA_SOURCE_NAME` no longer contains the placeholder `CHANGE_ME`.
+
 ## 7. Configure Database Exporters
 
 Create DB monitoring users and grants first. Use [operator_handover.md](operator_handover.md) for SQL examples.
@@ -200,7 +202,101 @@ curl http://localhost:9161/metrics | grep '^oracle_up'
 curl http://localhost:9182/metrics | grep '^mssql_up'
 ```
 
-## 8. Configure Alertmanager
+## 8. Tune Exporters
+
+Node exporter tuning is installed from:
+
+```text
+config/node_exporter/node_exporter.env.example
+```
+
+Runtime path:
+
+```text
+/monitoring/exporters/node/node_exporter.env
+```
+
+Common node exporter settings:
+
+| Setting | Purpose |
+| --- | --- |
+| `NODE_EXPORTER_WEB_LISTEN_ADDRESS` | Node exporter listen address |
+| `NODE_EXPORTER_WEB_MAX_REQUESTS` | Maximum concurrent scrape requests |
+| `NODE_EXPORTER_LOG_LEVEL` | Runtime log level |
+| `NODE_EXPORTER_FILESYSTEM_MOUNT_POINTS_EXCLUDE` | Exclude noisy pseudo/container mounts |
+| `NODE_EXPORTER_FILESYSTEM_FS_TYPES_EXCLUDE` | Exclude pseudo filesystem types |
+
+Oracle exporter tuning is stored with the credential env file:
+
+```text
+/monitoring/exporters/oracle/oracle_exporter.env
+```
+
+Common Oracle exporter settings:
+
+| Setting | Purpose |
+| --- | --- |
+| `DATA_SOURCE_NAME` | Oracle connection string |
+| `ORACLE_EXPORTER_WEB_LISTEN_ADDRESS` | Oracle exporter listen address |
+| `ORACLE_EXPORTER_TELEMETRY_PATH` | Metrics path |
+| `ORACLE_EXPORTER_LOG_LEVEL` | Runtime log level |
+
+MSSQL exporter tuning is stored with the credential env file:
+
+```text
+/monitoring/exporters/mssql/mssql_exporter.env
+```
+
+Common MSSQL exporter settings:
+
+| Setting | Purpose |
+| --- | --- |
+| `DATA_SOURCE_NAME` | SQL Server connection string |
+| `MSSQL_EXPORTER_WEB_LISTEN_ADDRESS` | MSSQL exporter listen address |
+
+After changing exporter tuning:
+
+```bash
+sudo systemctl restart node_exporter
+sudo systemctl restart oracle_exporter
+sudo systemctl restart mssql_exporter
+```
+
+## 9. Tune Grafana
+
+Grafana runtime tuning is installed from:
+
+```text
+config/grafana/grafana.env.example
+```
+
+Runtime path:
+
+```text
+/monitoring/grafana/conf/grafana.env
+```
+
+Common settings:
+
+| Setting | Purpose |
+| --- | --- |
+| `GF_SERVER_ROOT_URL` | Public URL used in links |
+| `GF_USERS_ALLOW_SIGN_UP` | Disable self sign-up |
+| `GF_AUTH_ANONYMOUS_ENABLED` | Disable anonymous access |
+| `GF_METRICS_ENABLED` | Enable `/metrics` for Prometheus self-monitoring |
+| `GF_DASHBOARDS_MIN_REFRESH_INTERVAL` | Prevent overly aggressive dashboard refresh |
+| `GF_QUERY_CONCURRENT_QUERY_LIMIT` | Bound concurrent dashboard queries |
+
+Datasource provisioning uses VictoriaMetrics at `http://localhost:8428` with datasource UID `Prometheus`.
+
+Validate:
+
+```bash
+curl -fsS http://localhost:3000/api/health
+curl -fsS http://localhost:3000/metrics
+```
+
+## 10. Configure Alertmanager
 
 Edit SMTP settings:
 
@@ -250,7 +346,7 @@ curl -fsS http://localhost:9093/-/ready
 curl -fsS http://localhost:9093/api/v2/status
 ```
 
-## 9. Tune VictoriaMetrics
+## 11. Tune VictoriaMetrics
 
 Default tuning is installed from:
 
@@ -282,7 +378,7 @@ sudo systemctl restart victoriametrics
 curl -fsS http://localhost:8428/health
 ```
 
-## 10. Tune Prometheus
+## 12. Tune Prometheus
 
 Prometheus keeps short local retention and sends long-term data to VictoriaMetrics through `remote_write`.
 
@@ -322,7 +418,7 @@ Remote-write queue tuning is defined in:
 config/prometheus.yml
 ```
 
-## 11. Open Firewall Ports
+## 13. Open Firewall Ports
 
 For single VM control plane access:
 
@@ -343,13 +439,21 @@ sudo firewall-cmd --permanent --add-port=9182/tcp
 sudo firewall-cmd --reload
 ```
 
-## 12. Validate Deployment
+## 14. Validate Deployment
 
 Run the health check:
 
 ```bash
 sudo ./09_health_check.sh
 ```
+
+Result meaning:
+
+| Result | Meaning |
+| --- | --- |
+| `PASSED` | Core services, endpoints, rules, and remote-write checks passed |
+| `PASSED WITH WARNINGS` | Core platform is running, but optional checks need follow-up, usually Oracle/MSSQL credentials are still placeholders |
+| `FAILED` | At least one required platform service, endpoint, config, or rule check failed |
 
 Open these URLs:
 
@@ -376,7 +480,7 @@ curl -G 'http://localhost:8428/api/v1/query' --data-urlencode 'query=oracle_up'
 curl -G 'http://localhost:8428/api/v1/query' --data-urlencode 'query=mssql_up'
 ```
 
-## 13. Troubleshooting
+## 15. Troubleshooting
 
 Service logs:
 
@@ -400,7 +504,7 @@ sudo systemctl status oracle_exporter --no-pager
 sudo systemctl status mssql_exporter --no-pager
 ```
 
-## 14. Final Checklist
+## 16. Final Checklist
 
 - Offline packages and SHA256 checksums are approved.
 - `inventory/targets.csv` is reviewed.

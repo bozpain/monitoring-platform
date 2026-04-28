@@ -61,6 +61,24 @@ scrape_configs:
           owner: "dba"
 
   # =========================
+  # GRAFANA SELF MONITORING
+  # =========================
+  - job_name: "grafana"
+    static_configs:
+      - targets:
+          - "localhost:3000"
+        labels:
+          service: "grafana"
+          environment: "development"
+          site: "development"
+          team: "dba"
+          role: "visualization"
+          db_type: "none"
+          app: "monitoring-platform"
+          tier: "shared"
+          owner: "dba"
+
+  # =========================
   # VICTORIAMETRICS STORAGE
   # =========================
   - job_name: "victoriametrics"
