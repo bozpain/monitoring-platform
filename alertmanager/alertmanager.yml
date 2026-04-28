@@ -9,10 +9,24 @@ global:
 
 route:
   receiver: "dba-email"
-  group_by: ["alertname", "app", "tier", "severity"]
+  group_by: ["app", "tier", "owner", "severity", "db_type"]
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 4h
+  routes:
+    - receiver: "dba-critical-email"
+      matchers:
+        - severity="critical"
+      group_wait: 10s
+      group_interval: 2m
+      repeat_interval: 1h
+
+    - receiver: "dba-warning-email"
+      matchers:
+        - severity="warning"
+      group_wait: 2m
+      group_interval: 10m
+      repeat_interval: 6h
 
 receivers:
   - name: "dba-email"
@@ -35,9 +49,49 @@ receivers:
             - {{ .Annotations.summary }}<br>
           {{ end }}
 
+  - name: "dba-critical-email"
+    email_configs:
+      - to: "dba-team@company.local"
+        send_resolved: true
+        headers:
+          subject: "[CRITICAL][{{ .CommonLabels.app | toUpper }}][{{ .CommonLabels.tier | toUpper }}] {{ .CommonLabels.alertname }}"
+
+        html: |
+          <b>Critical alert group</b><br>
+          <b>Application:</b> {{ .CommonLabels.app }}<br>
+          <b>Tier:</b> {{ .CommonLabels.tier }}<br>
+          <b>Owner:</b> {{ .CommonLabels.owner }}<br>
+          <b>Database Type:</b> {{ .CommonLabels.db_type }}<br>
+          <br>
+          {{ range .Alerts }}
+            <b>{{ .Labels.alertname }}</b> on {{ .Labels.instance }}<br>
+            {{ .Annotations.summary }}<br>
+            {{ .Annotations.description }}<br><br>
+          {{ end }}
+
+  - name: "dba-warning-email"
+    email_configs:
+      - to: "dba-team@company.local"
+        send_resolved: true
+        headers:
+          subject: "[WARNING][{{ .CommonLabels.app | toUpper }}][{{ .CommonLabels.tier | toUpper }}] {{ .CommonLabels.alertname }}"
+
+        html: |
+          <b>Warning alert group</b><br>
+          <b>Application:</b> {{ .CommonLabels.app }}<br>
+          <b>Tier:</b> {{ .CommonLabels.tier }}<br>
+          <b>Owner:</b> {{ .CommonLabels.owner }}<br>
+          <b>Database Type:</b> {{ .CommonLabels.db_type }}<br>
+          <br>
+          {{ range .Alerts }}
+            <b>{{ .Labels.alertname }}</b> on {{ .Labels.instance }}<br>
+            {{ .Annotations.summary }}<br>
+            {{ .Annotations.description }}<br><br>
+          {{ end }}
+
 inhibit_rules:
   - source_matchers:
       - severity="critical"
     target_matchers:
       - severity="warning"
-    equal: ["alertname", "instance", "db_type", "app"]
+    equal: ["instance", "db_type", "app", "tier"]

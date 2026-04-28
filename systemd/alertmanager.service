@@ -7,18 +7,34 @@ Wants=network-online.target
 User=monitoring
 Group=monitoring
 Type=simple
+EnvironmentFile=/monitoring/alertmanager/conf/alertmanager.env
 
 ExecStart=/monitoring/alertmanager/bin/alertmanager \
   --config.file=/monitoring/alertmanager/conf/alertmanager.yml \
   --storage.path=/monitoring/data/alertmanager \
-  --web.listen-address=:9093
+  --web.listen-address=${AM_WEB_LISTEN_ADDRESS} \
+  --web.external-url=${AM_WEB_EXTERNAL_URL} \
+  --web.route-prefix=${AM_WEB_ROUTE_PREFIX} \
+  --data.retention=${AM_DATA_RETENTION} \
+  --alerts.gc-interval=${AM_ALERTS_GC_INTERVAL} \
+  --cluster.listen-address=${AM_CLUSTER_LISTEN_ADDRESS} \
+  --log.level=${AM_LOG_LEVEL}
 
 Restart=always
 RestartSec=5
 LimitNOFILE=65536
+LimitNPROC=65536
+TimeoutStopSec=60
+KillSignal=SIGTERM
 
 StandardOutput=append:/monitoring/logs/alertmanager/alertmanager.log
 StandardError=append:/monitoring/logs/alertmanager/alertmanager-error.log
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/monitoring/alertmanager /monitoring/data/alertmanager /monitoring/logs/alertmanager
 
 [Install]
 WantedBy=multi-user.target

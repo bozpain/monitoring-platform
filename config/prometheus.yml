@@ -43,6 +43,24 @@ scrape_configs:
           owner: "dba"
 
   # =========================
+  # ALERTMANAGER SELF MONITORING
+  # =========================
+  - job_name: "alertmanager"
+    static_configs:
+      - targets:
+          - "localhost:9093"
+        labels:
+          service: "alertmanager"
+          environment: "development"
+          site: "development"
+          team: "dba"
+          role: "alert-routing"
+          db_type: "none"
+          app: "monitoring-platform"
+          tier: "shared"
+          owner: "dba"
+
+  # =========================
   # VICTORIAMETRICS STORAGE
   # =========================
   - job_name: "victoriametrics"

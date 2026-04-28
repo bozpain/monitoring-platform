@@ -191,6 +191,19 @@ sudo vi /monitoring/prometheus/conf/prometheus.env
 sudo systemctl restart prometheus
 ```
 
+Alertmanager runtime tuning defaults are installed from:
+
+```text
+config/alertmanager/alertmanager.env.example
+```
+
+On the server, tune listen address, external URL, notification retention, and single-node cluster behavior here:
+
+```bash
+sudo vi /monitoring/alertmanager/conf/alertmanager.env
+sudo systemctl restart alertmanager
+```
+
 ### 5. Configure Database Exporter Credentials
 
 The Oracle and MSSQL exporter installers create template credential files on the server. Edit them before starting the DB exporters:
@@ -217,6 +230,8 @@ sudo systemctl restart alertmanager
 ```
 
 Replace the `CHANGE_ME` SMTP password and company placeholders before relying on email alerts.
+
+Default routing sends critical alerts faster and repeats them more often than warnings. Tune `group_wait`, `group_interval`, `repeat_interval`, receivers, and inhibition rules in `/monitoring/alertmanager/conf/alertmanager.yml`.
 
 ### 7. Open Required Firewall Ports
 

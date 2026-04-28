@@ -211,6 +211,45 @@ sudo systemctl restart alertmanager
 
 Replace all `CHANGE_ME` values and company placeholders before relying on alert email.
 
+Runtime tuning is installed from:
+
+```text
+config/alertmanager/alertmanager.env.example
+```
+
+Runtime path:
+
+```text
+/monitoring/alertmanager/conf/alertmanager.env
+```
+
+Common settings:
+
+| Setting | Purpose |
+| --- | --- |
+| `AM_WEB_LISTEN_ADDRESS` | Alertmanager listen address |
+| `AM_WEB_EXTERNAL_URL` | URL used in generated links |
+| `AM_DATA_RETENTION` | Notification log and silence retention |
+| `AM_ALERTS_GC_INTERVAL` | Alert garbage collection interval |
+| `AM_CLUSTER_LISTEN_ADDRESS` | Cluster gossip listen address; blank disables clustering for single VM |
+| `AM_LOG_LEVEL` | Runtime log level |
+
+Default notification routing:
+
+| Severity | Initial wait | Group interval | Repeat |
+| --- | --- | --- | --- |
+| `critical` | `10s` | `2m` | `1h` |
+| `warning` | `2m` | `10m` | `6h` |
+
+Validate after changes:
+
+```bash
+/monitoring/alertmanager/bin/amtool check-config /monitoring/alertmanager/conf/alertmanager.yml
+sudo systemctl restart alertmanager
+curl -fsS http://localhost:9093/-/ready
+curl -fsS http://localhost:9093/api/v2/status
+```
+
 ## 9. Tune VictoriaMetrics
 
 Default tuning is installed from:

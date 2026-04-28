@@ -1,0 +1,37 @@
+groups:
+  - name: alertmanager.rules
+    interval: 30s
+    rules:
+
+      - alert: AlertmanagerDown
+        expr: up{job="alertmanager"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+          service: alertmanager
+        annotations:
+          summary: "Alertmanager down on {{ $labels.instance }}"
+          description: "Prometheus cannot scrape Alertmanager. Alert notifications may not be delivered."
+
+      - alert: AlertmanagerConfigReloadFailed
+        expr: alertmanager_config_last_reload_successful{job="alertmanager"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          category: configuration
+          service: alertmanager
+        annotations:
+          summary: "Alertmanager config reload failed on {{ $labels.instance }}"
+          description: "Alertmanager could not reload its configuration. Check amtool check-config and service logs."
+
+      - alert: AlertmanagerNotificationFailures
+        expr: rate(alertmanager_notifications_failed_total{job="alertmanager"}[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          category: notification
+          service: alertmanager
+        annotations:
+          summary: "Alertmanager notification failures on {{ $labels.instance }}"
+          description: "Alertmanager failed to send notifications in the last 5 minutes. Check SMTP settings and mail relay connectivity."

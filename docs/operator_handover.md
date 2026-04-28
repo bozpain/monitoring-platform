@@ -175,7 +175,61 @@ curl -G 'http://localhost:9090/api/v1/query' --data-urlencode 'query=prometheus_
 curl -G 'http://localhost:9090/api/v1/query' --data-urlencode 'query=rate(prometheus_remote_storage_samples_failed_total[5m])'
 ```
 
-## 5. Oracle Monitoring User
+## 5. Alertmanager Tuning
+
+Alertmanager is installed before Prometheus so the alerting endpoint is already available when Prometheus starts.
+
+The installer deploys Alertmanager runtime defaults from:
+
+```text
+config/alertmanager/alertmanager.env.example
+```
+
+Installed path:
+
+```text
+/monitoring/alertmanager/conf/alertmanager.env
+```
+
+Default tuning:
+
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `AM_WEB_LISTEN_ADDRESS` | `:9093` | Alertmanager listen address |
+| `AM_WEB_EXTERNAL_URL` | `http://localhost:9093` | URL used in generated links |
+| `AM_DATA_RETENTION` | `120h` | Notification log and silence retention |
+| `AM_ALERTS_GC_INTERVAL` | `30m` | Alert garbage collection interval |
+| `AM_CLUSTER_LISTEN_ADDRESS` | blank | Disable clustering for single-VM deployment |
+| `AM_LOG_LEVEL` | `info` | Runtime log level |
+
+Default notification timing:
+
+| Severity | Initial wait | Group interval | Repeat |
+| --- | --- | --- | --- |
+| `critical` | `10s` | `2m` | `1h` |
+| `warning` | `2m` | `10m` | `6h` |
+
+The default inhibition rule suppresses warning alerts when a critical alert is firing for the same `instance`, `db_type`, `app`, and `tier`.
+
+Prometheus scrapes Alertmanager with `job="alertmanager"` so availability, config reload failures, and notification failures can alert.
+
+After changing routing or SMTP:
+
+```bash
+/monitoring/alertmanager/bin/amtool check-config /monitoring/alertmanager/conf/alertmanager.yml
+sudo systemctl restart alertmanager
+curl -fsS http://localhost:9093/-/ready
+curl -fsS http://localhost:9093/api/v2/status
+/monitoring/alertmanager/bin/amtool --alertmanager.url=http://localhost:9093 status
+```
+
+Before relying on email alerts, replace all placeholder SMTP values in:
+
+```text
+/monitoring/alertmanager/conf/alertmanager.yml
+```
+
+## 6. Oracle Monitoring User
 
 Run the following as a privileged DBA user. Adjust password, profile, and tablespace standards to match local policy.
 
@@ -236,7 +290,7 @@ curl http://localhost:9161/metrics | grep '^oracle_up'
 
 If ASM metrics are not required or the database user cannot access ASM views, remove or comment the ASM metric blocks in `/monitoring/exporters/oracle/oracle-metrics.toml`.
 
-## 6. MSSQL Monitoring User
+## 7. MSSQL Monitoring User
 
 Run the following as a SQL Server administrator. Adjust password and login policy to match local standards.
 
@@ -288,7 +342,7 @@ curl http://localhost:9182/metrics | grep '^mssql_up'
 
 Use `encrypt=true` or the organization standard if SQL Server requires TLS.
 
-## 7. Oracle Linux 8 Firewall And SELinux
+## 8. Oracle Linux 8 Firewall And SELinux
 
 ### Single VM Control Plane Ports
 
@@ -355,7 +409,7 @@ sudo setenforce 0
 
 If the issue disappears in permissive mode, create a proper SELinux policy with the Linux security team instead of leaving SELinux disabled.
 
-## 8. Metric Validation
+## 9. Metric Validation
 
 Run these after deployment and after every inventory change.
 
@@ -427,7 +481,7 @@ mssql_database_size_value{job="mssql"}
 
 Metric names can differ if exporter versions or custom query naming rules change. If a dashboard panel is empty, confirm the exact metric name from the exporter `/metrics` endpoint first.
 
-## 9. Handover Checklist
+## 10. Handover Checklist
 
 - Offline package manifest completed.
 - SHA256 checksums verified.

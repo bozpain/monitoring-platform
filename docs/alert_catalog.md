@@ -54,6 +54,14 @@ This catalog describes the default alert policy. Thresholds are conservative sta
 | `PrometheusRemoteWriteBacklogHigh` | warning | pending samples > 100000 for 10m | Remote-write queue is falling behind |
 | `PrometheusTSDBHeadSeriesHigh` | warning | active series > 2M for 15m | Cardinality or target count may be too high |
 
+## Alertmanager Alerts
+
+| Alert | Severity | Trigger | Why it matters |
+| --- | --- | --- | --- |
+| `AlertmanagerDown` | critical | `up{job="alertmanager"} == 0` for 2m | Alert notifications may not be delivered |
+| `AlertmanagerConfigReloadFailed` | warning | last config reload unsuccessful for 5m | Alertmanager is not running latest valid config |
+| `AlertmanagerNotificationFailures` | warning | failed notifications for 5m | Email or notification receiver path may be broken |
+
 ## Oracle Alerts
 
 | Alert | Severity | Trigger | Why it matters |
