@@ -7,20 +7,36 @@ Wants=network-online.target
 User=monitoring
 Group=monitoring
 Type=simple
+EnvironmentFile=/monitoring/prometheus/conf/prometheus.env
 
 ExecStart=/monitoring/prometheus/bin/prometheus \
   --config.file=/monitoring/prometheus/conf/prometheus.yml \
   --storage.tsdb.path=/monitoring/data/prometheus \
-  --web.listen-address=:9090 \
-  --storage.tsdb.retention.time=1d \
+  --web.listen-address=${PROM_WEB_LISTEN_ADDRESS} \
+  --storage.tsdb.retention.time=${PROM_RETENTION_TIME} \
+  --storage.tsdb.retention.size=${PROM_RETENTION_SIZE} \
+  --storage.tsdb.wal-compression \
+  --query.timeout=${PROM_QUERY_TIMEOUT} \
+  --query.max-concurrency=${PROM_QUERY_MAX_CONCURRENCY} \
+  --query.max-samples=${PROM_QUERY_MAX_SAMPLES} \
+  --storage.remote.flush-deadline=${PROM_REMOTE_FLUSH_DEADLINE} \
   --web.enable-lifecycle
 
 Restart=always
 RestartSec=5
 LimitNOFILE=65536
+LimitNPROC=65536
+TimeoutStopSec=75
+KillSignal=SIGTERM
 
 StandardOutput=append:/monitoring/logs/prometheus/prometheus.log
 StandardError=append:/monitoring/logs/prometheus/prometheus-error.log
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/monitoring/prometheus /monitoring/data/prometheus /monitoring/logs/prometheus /monitoring/config/targets
 
 [Install]
 WantedBy=multi-user.target

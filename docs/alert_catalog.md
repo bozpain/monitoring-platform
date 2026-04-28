@@ -43,6 +43,17 @@ This catalog describes the default alert policy. Thresholds are conservative sta
 | `VictoriaMetricsRowsIgnored` | warning | ignored rows increase in 5m | Data is being dropped or rejected |
 | `VictoriaMetricsCacheSaturated` | warning | cache usage > 95% for 10m | Cache pressure may increase CPU/disk I/O |
 
+## Prometheus Alerts
+
+| Alert | Severity | Trigger | Why it matters |
+| --- | --- | --- | --- |
+| `PrometheusDown` | critical | `up{job="prometheus"} == 0` for 2m | Scrape, rule, and alert engine unavailable |
+| `PrometheusConfigReloadFailed` | warning | last config reload unsuccessful for 5m | Prometheus is not running latest valid config |
+| `PrometheusRuleEvaluationFailures` | warning | rule failures increase in 5m | Recording or alert rules may be wrong |
+| `PrometheusRemoteWriteFailures` | warning | failed remote-write samples for 5m | Data may not reach VictoriaMetrics |
+| `PrometheusRemoteWriteBacklogHigh` | warning | pending samples > 100000 for 10m | Remote-write queue is falling behind |
+| `PrometheusTSDBHeadSeriesHigh` | warning | active series > 2M for 15m | Cardinality or target count may be too high |
+
 ## Oracle Alerts
 
 | Alert | Severity | Trigger | Why it matters |

@@ -161,6 +161,8 @@ sudo ./05_install_grafana.sh
 sudo ./09_health_check.sh
 ```
 
+This order is intentionally dependency-first, so the script numbers are not strictly sequential. Alertmanager is installed before Prometheus so the alerting endpoint is already available when Prometheus starts. Grafana is installed after VictoriaMetrics and Prometheus because its datasource and dashboards depend on them.
+
 Oracle and MSSQL exporter installers only create/enable the services and credential templates. Start them after the database users and `DATA_SOURCE_NAME` values are correct.
 
 VictoriaMetrics tuning defaults are installed from:
@@ -174,6 +176,19 @@ On the server, tune retention, memory budget, disk free-space guardrail, and que
 ```bash
 sudo vi /monitoring/victoriametrics/conf/victoriametrics.env
 sudo systemctl restart victoriametrics
+```
+
+Prometheus runtime tuning defaults are installed from:
+
+```text
+config/prometheus/prometheus.env.example
+```
+
+On the server, tune local retention, local disk cap, query limits, and remote-write flush deadline here:
+
+```bash
+sudo vi /monitoring/prometheus/conf/prometheus.env
+sudo systemctl restart prometheus
 ```
 
 ### 5. Configure Database Exporter Credentials

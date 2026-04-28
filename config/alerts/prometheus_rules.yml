@@ -1,0 +1,70 @@
+groups:
+  - name: prometheus.rules
+    interval: 30s
+    rules:
+
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+          service: prometheus
+        annotations:
+          summary: "Prometheus down on {{ $labels.instance }}"
+          description: "Prometheus self-scrape is down. Scraping, rules, and alert delivery may be unavailable."
+
+      - alert: PrometheusConfigReloadFailed
+        expr: prometheus_config_last_reload_successful{job="prometheus"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          category: configuration
+          service: prometheus
+        annotations:
+          summary: "Prometheus config reload failed on {{ $labels.instance }}"
+          description: "Prometheus could not reload the latest configuration. Check promtool output and service logs."
+
+      - alert: PrometheusRuleEvaluationFailures
+        expr: increase(prometheus_rule_evaluation_failures_total{job="prometheus"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          category: rules
+          service: prometheus
+        annotations:
+          summary: "Prometheus rule evaluation failures on {{ $labels.instance }}"
+          description: "One or more recording or alert rules failed during evaluation in the last 5 minutes."
+
+      - alert: PrometheusRemoteWriteFailures
+        expr: rate(prometheus_remote_storage_samples_failed_total{job="prometheus"}[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          category: remote-write
+          service: prometheus
+        annotations:
+          summary: "Prometheus remote-write failures on {{ $labels.instance }}"
+          description: "Prometheus is failing to send samples to remote storage. Check VictoriaMetrics and network path."
+
+      - alert: PrometheusRemoteWriteBacklogHigh
+        expr: prometheus_remote_storage_samples_pending{job="prometheus"} > 100000
+        for: 10m
+        labels:
+          severity: warning
+          category: remote-write
+          service: prometheus
+        annotations:
+          summary: "Prometheus remote-write backlog high on {{ $labels.instance }}"
+          description: "Remote-write pending samples are above 100000 for 10 minutes. Check VictoriaMetrics ingest speed and queue tuning."
+
+      - alert: PrometheusTSDBHeadSeriesHigh
+        expr: prometheus_tsdb_head_series{job="prometheus"} > 2000000
+        for: 15m
+        labels:
+          severity: warning
+          category: capacity
+          service: prometheus
+        annotations:
+          summary: "Prometheus active series high on {{ $labels.instance }}"
+          description: "Prometheus active series are above 2 million. Review target count, labels, and scrape cardinality."

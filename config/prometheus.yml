@@ -4,6 +4,14 @@ global:
 
 remote_write:
   - url: http://localhost:8428/api/v1/write
+    queue_config:
+      capacity: 10000
+      max_shards: 30
+      min_shards: 1
+      max_samples_per_send: 2000
+      batch_send_deadline: 5s
+      min_backoff: 30ms
+      max_backoff: 5s
 
 rule_files:
   - /monitoring/prometheus/conf/alerts/*.yml
@@ -15,6 +23,24 @@ alerting:
             - "localhost:9093"
 
 scrape_configs:
+
+  # =========================
+  # PROMETHEUS SELF MONITORING
+  # =========================
+  - job_name: "prometheus"
+    static_configs:
+      - targets:
+          - "localhost:9090"
+        labels:
+          service: "prometheus"
+          environment: "development"
+          site: "development"
+          team: "dba"
+          role: "scrape-engine"
+          db_type: "none"
+          app: "monitoring-platform"
+          tier: "shared"
+          owner: "dba"
 
   # =========================
   # VICTORIAMETRICS STORAGE

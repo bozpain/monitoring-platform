@@ -14,6 +14,8 @@ DATA_DIR="$BASE_DIR/data/prometheus"
 LOG_DIR="$BASE_DIR/logs/prometheus"
 
 CONFIG_SRC="./config/prometheus.yml"
+ENV_SRC="./config/prometheus/prometheus.env.example"
+ENV_DST="$CONF_DIR/prometheus.env"
 TARGETS_SRC="./config/targets"
 
 SERVICE_SRC="./systemd/prometheus.service"
@@ -73,6 +75,10 @@ rm -rf "$TMP_DIR"
 
 chmod +x "$BIN_DIR/prometheus" "$BIN_DIR/promtool"
 
+echo "[INFO] Checking Prometheus binary..."
+"$BIN_DIR/prometheus" --version || true
+"$BIN_DIR/promtool" --version || true
+
 echo "[INFO] Installing Prometheus config..."
 
 if [ -f "$CONF_DIR/prometheus.yml" ]; then
@@ -80,6 +86,28 @@ if [ -f "$CONF_DIR/prometheus.yml" ]; then
 fi
 
 cp "$CONFIG_SRC" "$CONF_DIR/prometheus.yml"
+
+echo "[INFO] Installing Prometheus tuning env..."
+
+if [ -f "$ENV_DST" ]; then
+  cp "$ENV_DST" "$ENV_DST.bak.$(date +%Y%m%d_%H%M%S)"
+fi
+
+if [ -f "$ENV_SRC" ]; then
+  cp "$ENV_SRC" "$ENV_DST"
+else
+  cat > "$ENV_DST" <<'EOF'
+PROM_WEB_LISTEN_ADDRESS=:9090
+PROM_RETENTION_TIME=1d
+PROM_RETENTION_SIZE=10GB
+PROM_QUERY_TIMEOUT=2m
+PROM_QUERY_MAX_CONCURRENCY=20
+PROM_QUERY_MAX_SAMPLES=50000000
+PROM_REMOTE_FLUSH_DEADLINE=1m
+EOF
+fi
+
+chmod 640 "$ENV_DST"
 
 echo "[INFO] Installing Prometheus file_sd targets..."
 
@@ -91,11 +119,27 @@ else
   exit 1
 fi
 
+for file in node_targets.yml oracle_targets.yml mssql_targets.yml; do
+  if [ ! -f "$TARGETS_DIR/$file" ]; then
+    echo "[ERROR] Missing generated target file: $TARGETS_DIR/$file"
+    echo "[INFO] Run: python3 scripts/generate_targets.py"
+    exit 1
+  fi
+
+  if [ ! -s "$TARGETS_DIR/$file" ]; then
+    echo "[WARN] Generated target file is empty: $TARGETS_DIR/$file"
+  fi
+done
+
 echo "[INFO] Installing alert rules..."
 
 if [ -d ./config/alerts ]; then
   rm -f "$ALERT_DIR"/*.yml
-  cp ./config/alerts/*.yml "$ALERT_DIR/" 2>/dev/null || true
+  if ls ./config/alerts/*.yml >/dev/null 2>&1; then
+    cp ./config/alerts/*.yml "$ALERT_DIR/"
+  else
+    echo "[WARN] No alert rule files found in ./config/alerts"
+  fi
 else
   echo "[WARN] ./config/alerts not found, skipping alert rules"
 fi
@@ -111,6 +155,10 @@ echo "[INFO] Validating Prometheus config..."
 
 "$BIN_DIR/promtool" check config "$CONF_DIR/prometheus.yml"
 
+if ls "$ALERT_DIR"/*.yml >/dev/null 2>&1; then
+  "$BIN_DIR/promtool" check rules "$ALERT_DIR"/*.yml
+fi
+
 if [ ! -f "$SERVICE_SRC" ]; then
   echo "[ERROR] Service file not found: $SERVICE_SRC"
   exit 1
@@ -119,6 +167,9 @@ fi
 echo "[INFO] Installing systemd service..."
 
 cp "$SERVICE_SRC" "$SERVICE_DST"
+
+echo "[INFO] Validating systemd unit..."
+systemd-analyze verify "$SERVICE_DST" || true
 
 systemctl daemon-reload
 systemctl enable prometheus
@@ -135,7 +186,17 @@ else
   echo "[WARN] Prometheus endpoint test failed. Check: journalctl -u prometheus -f"
 fi
 
+echo "[INFO] Checking Prometheus runtime flags..."
+curl -fsS http://localhost:9090/api/v1/status/runtimeinfo >/dev/null || true
+
+echo "[INFO] Checking Prometheus targets API..."
+curl -fsS http://localhost:9090/api/v1/targets >/dev/null || true
+
+echo "[INFO] Local TSDB disk usage:"
+df -h "$DATA_DIR"
+
 echo "[DONE] Prometheus installed successfully"
 echo "[INFO] Prometheus config: $CONF_DIR/prometheus.yml"
+echo "[INFO] Prometheus env: $ENV_DST"
 echo "[INFO] Prometheus targets: $TARGETS_DIR"
 echo "[INFO] Prometheus alerts: $ALERT_DIR"

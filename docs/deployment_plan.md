@@ -153,7 +153,7 @@ validate generated targets
 09_health_check.sh
 ```
 
-This order matters because Prometheus depends on Alertmanager and VictoriaMetrics endpoints being present, and Grafana expects VictoriaMetrics as its datasource.
+This order is intentionally dependency-first, so the script numbers are not strictly sequential. Alertmanager is installed before Prometheus so the alerting endpoint is already available when Prometheus starts. Grafana is installed after VictoriaMetrics and Prometheus because its datasource and dashboards depend on them.
 
 ## 6. Manual Step-By-Step Deployment
 
@@ -243,7 +243,47 @@ sudo systemctl restart victoriametrics
 curl -fsS http://localhost:8428/health
 ```
 
-## 10. Open Firewall Ports
+## 10. Tune Prometheus
+
+Prometheus keeps short local retention and sends long-term data to VictoriaMetrics through `remote_write`.
+
+Default tuning is installed from:
+
+```text
+config/prometheus/prometheus.env.example
+```
+
+Runtime path:
+
+```text
+/monitoring/prometheus/conf/prometheus.env
+```
+
+Common settings:
+
+| Setting | Purpose |
+| --- | --- |
+| `PROM_RETENTION_TIME` | Short local TSDB retention |
+| `PROM_RETENTION_SIZE` | Local TSDB disk cap |
+| `PROM_QUERY_TIMEOUT` | Query timeout |
+| `PROM_QUERY_MAX_CONCURRENCY` | Maximum concurrent queries |
+| `PROM_QUERY_MAX_SAMPLES` | Maximum samples per query |
+| `PROM_REMOTE_FLUSH_DEADLINE` | Grace period for remote-write flush on shutdown |
+
+Apply changes:
+
+```bash
+sudo systemctl restart prometheus
+curl -fsS http://localhost:9090/-/ready
+```
+
+Remote-write queue tuning is defined in:
+
+```text
+config/prometheus.yml
+```
+
+## 11. Open Firewall Ports
 
 For single VM control plane access:
 
@@ -264,7 +304,7 @@ sudo firewall-cmd --permanent --add-port=9182/tcp
 sudo firewall-cmd --reload
 ```
 
-## 11. Validate Deployment
+## 12. Validate Deployment
 
 Run the health check:
 
@@ -297,7 +337,7 @@ curl -G 'http://localhost:8428/api/v1/query' --data-urlencode 'query=oracle_up'
 curl -G 'http://localhost:8428/api/v1/query' --data-urlencode 'query=mssql_up'
 ```
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
 Service logs:
 
@@ -321,7 +361,7 @@ sudo systemctl status oracle_exporter --no-pager
 sudo systemctl status mssql_exporter --no-pager
 ```
 
-## 13. Final Checklist
+## 14. Final Checklist
 
 - Offline packages and SHA256 checksums are approved.
 - `inventory/targets.csv` is reviewed.

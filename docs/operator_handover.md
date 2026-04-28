@@ -127,7 +127,55 @@ curl -G 'http://localhost:8428/api/v1/query' --data-urlencode 'query=up'
 
 Prometheus also scrapes VictoriaMetrics itself with `job="victoriametrics"` so storage availability, ignored rows, and cache saturation can alert.
 
-## 4. Oracle Monitoring User
+## 4. Prometheus Tuning
+
+Prometheus is configured as the short-retention scrape and rule engine. VictoriaMetrics is the long-retention store.
+
+The installer deploys Prometheus runtime defaults from:
+
+```text
+config/prometheus/prometheus.env.example
+```
+
+Installed path:
+
+```text
+/monitoring/prometheus/conf/prometheus.env
+```
+
+Default tuning:
+
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `PROM_RETENTION_TIME` | `1d` | Short local TSDB retention |
+| `PROM_RETENTION_SIZE` | `10GB` | Local TSDB disk guardrail |
+| `PROM_QUERY_TIMEOUT` | `2m` | Cancel unexpectedly heavy queries |
+| `PROM_QUERY_MAX_CONCURRENCY` | `20` | Bound concurrent query memory usage |
+| `PROM_QUERY_MAX_SAMPLES` | `50000000` | Bound samples scanned per query |
+| `PROM_REMOTE_FLUSH_DEADLINE` | `1m` | Allow remote-write queue to flush on shutdown |
+
+Remote-write queue tuning is in `config/prometheus.yml`. Start with the defaults unless Prometheus shows remote-write backlog, high memory, or frequent send failures.
+
+Prometheus also scrapes itself with `job="prometheus"` so config reload failures, rule evaluation failures, remote-write failures, remote-write backlog, and active series growth can alert.
+
+After changing tuning:
+
+```bash
+sudo systemctl restart prometheus
+curl -fsS http://localhost:9090/-/ready
+curl -G 'http://localhost:9090/api/v1/query' --data-urlencode 'query=prometheus_remote_storage_samples_pending'
+```
+
+Watch these during the first production week:
+
+```bash
+df -h /monitoring/data/prometheus
+journalctl -u prometheus -n 100 --no-pager
+curl -G 'http://localhost:9090/api/v1/query' --data-urlencode 'query=prometheus_tsdb_head_series'
+curl -G 'http://localhost:9090/api/v1/query' --data-urlencode 'query=rate(prometheus_remote_storage_samples_failed_total[5m])'
+```
+
+## 5. Oracle Monitoring User
 
 Run the following as a privileged DBA user. Adjust password, profile, and tablespace standards to match local policy.
 
@@ -188,7 +236,7 @@ curl http://localhost:9161/metrics | grep '^oracle_up'
 
 If ASM metrics are not required or the database user cannot access ASM views, remove or comment the ASM metric blocks in `/monitoring/exporters/oracle/oracle-metrics.toml`.
 
-## 5. MSSQL Monitoring User
+## 6. MSSQL Monitoring User
 
 Run the following as a SQL Server administrator. Adjust password and login policy to match local standards.
 
@@ -240,7 +288,7 @@ curl http://localhost:9182/metrics | grep '^mssql_up'
 
 Use `encrypt=true` or the organization standard if SQL Server requires TLS.
 
-## 6. Oracle Linux 8 Firewall And SELinux
+## 7. Oracle Linux 8 Firewall And SELinux
 
 ### Single VM Control Plane Ports
 
@@ -307,7 +355,7 @@ sudo setenforce 0
 
 If the issue disappears in permissive mode, create a proper SELinux policy with the Linux security team instead of leaving SELinux disabled.
 
-## 7. Metric Validation
+## 8. Metric Validation
 
 Run these after deployment and after every inventory change.
 
@@ -379,7 +427,7 @@ mssql_database_size_value{job="mssql"}
 
 Metric names can differ if exporter versions or custom query naming rules change. If a dashboard panel is empty, confirm the exact metric name from the exporter `/metrics` endpoint first.
 
-## 8. Handover Checklist
+## 9. Handover Checklist
 
 - Offline package manifest completed.
 - SHA256 checksums verified.
