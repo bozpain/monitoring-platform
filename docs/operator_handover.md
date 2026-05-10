@@ -32,7 +32,7 @@ Use this when the platform grows or when storage/exporter workload must be separ
 | VM2 | Metrics storage | VictoriaMetrics |
 | VM3 | Exporter node | Oracle, MSSQL, Node exporters |
 
-Follow [deployment_plan_expand.md](deployment_plan_expand.md) for this layout. In this mode, Prometheus `remote_write` must point to VM2 and Prometheus target files must point to exporter ports on VM3.
+Follow [deployment_guide_expand.md](deployment_guide_expand.md) for this layout. In this mode, Prometheus `remote_write` must point to VM2 and Prometheus target files must point to exporter ports on VM3.
 
 ## 2. Offline Package Manifest
 

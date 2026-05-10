@@ -67,7 +67,7 @@ Alur singkat:
 | --- | --- |
 | [Deployment Guide](docs/deployment_guide.md) | Runbook teknis utama untuk install, tuning, validasi, dan troubleshooting |
 | [Operator Handover](docs/operator_handover.md) | DB grants, manifest offline package, firewall, SELinux, dan validasi metrik |
-| [3 VM Expansion](docs/deployment_plan_expand.md) | Panduan pemisahan control plane, storage, dan exporter node |
+| [Deployment Guide Expand](docs/deployment_guide_expand.md) | Panduan ekspansi 3 VM untuk memisahkan control plane, storage, dan exporter node |
 | [DPA Metric Catalog](docs/dpa_metric_catalog.md) | Coverage metrik DPA-style untuk node, Oracle, dan MSSQL |
 | [Alert Catalog](docs/alert_catalog.md) | Threshold default dan arti operasional alert |
 | [Offline Manifest Template](docs/offline_package_manifest.example.csv) | Template versi package dan checksum yang disetujui |

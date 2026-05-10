@@ -53,7 +53,7 @@ Node/Oracle/MSSQL exporters -> Prometheus -> VictoriaMetrics -> Grafana
                                 Alertmanager
 ```
 
-Untuk ekspansi 3 VM, gunakan [deployment_plan_expand.md](deployment_plan_expand.md). Untuk SQL grants, manifest offline package, firewall detail, SELinux notes, dan validasi metrik lanjutan, gunakan [operator_handover.md](operator_handover.md).
+Untuk ekspansi 3 VM, gunakan [deployment_guide_expand.md](deployment_guide_expand.md). Untuk handover operasional tambahan, gunakan [operator_handover.md](operator_handover.md).
 
 ## 3. VM Requirement
 
