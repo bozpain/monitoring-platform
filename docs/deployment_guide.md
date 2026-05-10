@@ -32,8 +32,6 @@
 
 ## 2. Target Architecture
 
-![Platform architecture](images/platform-architecture.svg)
-
 Single VM deployment memasang komponen berikut:
 
 | Komponen | Fungsi | Port |

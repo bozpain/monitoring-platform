@@ -40,8 +40,6 @@ Semua instruksi teknis deployment, tuning, credential exporter, firewall, valida
 
 ## Arsitektur
 
-![Platform architecture](docs/images/platform-architecture.svg)
-
 Alur singkat:
 
 1. Exporter membuka endpoint metrics untuk server, Oracle, dan MSSQL.
