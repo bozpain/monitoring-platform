@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="780" viewBox="0 0 1440 780" role="img" aria-labelledby="title desc">
+  <title id="title">Internal Database Observability Platform Architecture</title>
+  <desc id="desc">Full color architecture diagram showing exporters, Prometheus, VictoriaMetrics, Grafana, and Alertmanager.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#08111F"/>
+      <stop offset="48%" stop-color="#0F2747"/>
+      <stop offset="100%" stop-color="#132B2F"/>
+    </linearGradient>
+    <linearGradient id="source" x1="0" x2="1">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+    <linearGradient id="prom" x1="0" x2="1">
+      <stop offset="0%" stop-color="#F97316"/>
+      <stop offset="100%" stop-color="#EF4444"/>
+    </linearGradient>
+    <linearGradient id="store" x1="0" x2="1">
+      <stop offset="0%" stop-color="#14B8A6"/>
+      <stop offset="100%" stop-color="#22C55E"/>
+    </linearGradient>
+    <linearGradient id="dash" x1="0" x2="1">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#EC4899"/>
+    </linearGradient>
+    <linearGradient id="alert" x1="0" x2="1">
+      <stop offset="0%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#020617" flood-opacity="0.35"/>
+    </filter>
+    <marker id="arrowCyan" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto">
+      <path d="M2,2 L12,7 L2,12 Z" fill="#38BDF8"/>
+    </marker>
+    <marker id="arrowAmber" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto">
+      <path d="M2,2 L12,7 L2,12 Z" fill="#FBBF24"/>
+    </marker>
+    <marker id="arrowPurple" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto">
+      <path d="M2,2 L12,7 L2,12 Z" fill="#A78BFA"/>
+    </marker>
+    <style>
+      .title { font-family: Inter, Segoe UI, Arial, sans-serif; fill: #F8FAFC; font-size: 42px; font-weight: 800; }
+      .subtitle { font-family: Inter, Segoe UI, Arial, sans-serif; fill: #BAE6FD; font-size: 20px; font-weight: 500; }
+      .label { font-family: Inter, Segoe UI, Arial, sans-serif; fill: #FFFFFF; font-size: 24px; font-weight: 800; }
+      .small { font-family: Inter, Segoe UI, Arial, sans-serif; fill: #E2E8F0; font-size: 16px; font-weight: 500; }
+      .tiny { font-family: Inter, Segoe UI, Arial, sans-serif; fill: #C7D2FE; font-size: 13px; font-weight: 700; letter-spacing: 1px; }
+      .port { font-family: Inter, Segoe UI, Arial, sans-serif; fill: #0F172A; font-size: 14px; font-weight: 800; }
+      .line { fill: none; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+      .node { filter: url(#shadow); }
+    </style>
+  </defs>
+
+  <rect width="1440" height="780" rx="34" fill="url(#bg)"/>
+  <path d="M0,628 C240,570 360,700 560,644 C780,584 852,438 1090,482 C1260,514 1330,606 1440,552 L1440,780 L0,780 Z" fill="#0EA5E9" opacity="0.12"/>
+  <path d="M0,108 C226,174 346,34 556,88 C804,152 884,250 1110,190 C1262,150 1352,116 1440,146 L1440,0 L0,0 Z" fill="#22C55E" opacity="0.10"/>
+
+  <text x="72" y="78" class="title">Internal Database Observability Platform</text>
+  <text x="74" y="113" class="subtitle">Offline-ready monitoring stack for databases, servers, dashboards, alerts, and long-retention metrics.</text>
+
+  <g transform="translate(72 176)">
+    <rect x="0" y="0" width="260" height="84" rx="22" fill="#0F172A" stroke="#334155" stroke-width="2"/>
+    <circle cx="48" cy="42" r="24" fill="#38BDF8"/>
+    <path d="M38 44 L46 52 L60 32" stroke="#082F49" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="86" y="34" class="label" font-size="20">Inventory</text>
+    <text x="86" y="59" class="small">targets.csv</text>
+  </g>
+
+  <g transform="translate(72 306)" class="node">
+    <rect x="0" y="0" width="292" height="112" rx="26" fill="url(#source)"/>
+    <text x="32" y="40" class="tiny">TARGETS</text>
+    <text x="32" y="72" class="label">Linux Hosts</text>
+    <text x="32" y="96" class="small">Node exporter metrics</text>
+    <rect x="210" y="22" width="58" height="28" rx="14" fill="#FFFFFF"/>
+    <text x="223" y="42" class="port">9100</text>
+  </g>
+
+  <g transform="translate(72 456)" class="node">
+    <rect x="0" y="0" width="292" height="112" rx="26" fill="#7C3AED"/>
+    <text x="32" y="40" class="tiny">DATABASE</text>
+    <text x="32" y="72" class="label">Oracle</text>
+    <text x="32" y="96" class="small">Tablespace, sessions, RAC</text>
+    <rect x="210" y="22" width="58" height="28" rx="14" fill="#FFFFFF"/>
+    <text x="223" y="42" class="port">9161</text>
+  </g>
+
+  <g transform="translate(72 606)" class="node">
+    <rect x="0" y="0" width="292" height="112" rx="26" fill="#0EA5E9"/>
+    <text x="32" y="40" class="tiny">DATABASE</text>
+    <text x="32" y="72" class="label">MSSQL</text>
+    <text x="32" y="96" class="small">Capacity, blocking, perf</text>
+    <rect x="210" y="22" width="58" height="28" rx="14" fill="#FFFFFF"/>
+    <text x="223" y="42" class="port">9182</text>
+  </g>
+
+  <g transform="translate(498 384)" class="node">
+    <rect x="0" y="0" width="312" height="170" rx="32" fill="url(#prom)"/>
+    <text x="34" y="45" class="tiny">SCRAPE + RULE ENGINE</text>
+    <text x="34" y="84" class="label">Prometheus</text>
+    <text x="34" y="114" class="small">file_sd targets, recording rules, alerts</text>
+    <text x="34" y="140" class="small">short local retention, remote_write</text>
+    <rect x="222" y="28" width="64" height="30" rx="15" fill="#FFFFFF"/>
+    <text x="238" y="49" class="port">9090</text>
+  </g>
+
+  <g transform="translate(944 274)" class="node">
+    <rect x="0" y="0" width="320" height="132" rx="30" fill="url(#store)"/>
+    <text x="34" y="43" class="tiny">LONG RETENTION</text>
+    <text x="34" y="81" class="label">VictoriaMetrics</text>
+    <text x="34" y="108" class="small">Prometheus-compatible storage</text>
+    <rect x="238" y="26" width="60" height="30" rx="15" fill="#FFFFFF"/>
+    <text x="253" y="47" class="port">8428</text>
+  </g>
+
+  <g transform="translate(944 456)" class="node">
+    <rect x="0" y="0" width="320" height="132" rx="30" fill="url(#dash)"/>
+    <text x="34" y="43" class="tiny">VISUALIZATION</text>
+    <text x="34" y="81" class="label">Grafana</text>
+    <text x="34" y="108" class="small">Fleet, Node, Oracle, MSSQL dashboards</text>
+    <rect x="238" y="26" width="60" height="30" rx="15" fill="#FFFFFF"/>
+    <text x="253" y="47" class="port">3000</text>
+  </g>
+
+  <g transform="translate(944 622)" class="node">
+    <rect x="0" y="0" width="320" height="104" rx="28" fill="url(#alert)"/>
+    <text x="34" y="41" class="tiny">NOTIFICATION</text>
+    <text x="34" y="76" class="label">Alertmanager</text>
+    <rect x="238" y="22" width="60" height="30" rx="15" fill="#FFFFFF"/>
+    <text x="253" y="43" class="port">9093</text>
+  </g>
+
+  <path class="line" d="M332 218 C410 218 422 410 498 430" stroke="#38BDF8" marker-end="url(#arrowCyan)"/>
+  <path class="line" d="M364 362 C426 376 440 424 498 446" stroke="#38BDF8" marker-end="url(#arrowCyan)"/>
+  <path class="line" d="M364 512 C428 512 442 488 498 482" stroke="#38BDF8" marker-end="url(#arrowCyan)"/>
+  <path class="line" d="M364 662 C446 642 454 548 498 526" stroke="#38BDF8" marker-end="url(#arrowCyan)"/>
+
+  <path class="line" d="M810 438 C874 404 882 352 944 340" stroke="#34D399" marker-end="url(#arrowCyan)"/>
+  <path class="line" d="M1104 406 C1104 426 1104 436 1104 456" stroke="#FBBF24" marker-end="url(#arrowAmber)"/>
+  <path class="line" d="M810 516 C872 570 884 660 944 674" stroke="#A78BFA" marker-end="url(#arrowPurple)"/>
+
+  <g transform="translate(524 602)">
+    <rect x="0" y="0" width="270" height="56" rx="18" fill="#0F172A" stroke="#334155" stroke-width="2"/>
+    <text x="22" y="24" class="tiny">AUTOMATION</text>
+    <text x="22" y="43" class="small">deploy_all.sh + systemd services</text>
+  </g>
+</svg>
