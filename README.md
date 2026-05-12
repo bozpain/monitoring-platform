@@ -74,6 +74,8 @@ Alur singkat:
 | [Deployment Guide Expand](docs/deployment_guide_expand.md) | Panduan ekspansi 3 VM untuk memisahkan control plane, storage, dan exporter node |
 | [DPA Metric Catalog](docs/dpa_metric_catalog.md) | Coverage metrik DPA-style untuk node, Oracle, dan MSSQL |
 | [Oracle DPA Repository](docs/dpa_repository_design.md) | PostgreSQL repository, sampler, SQL drilldown, plan history, advisory, dan SLO weighting |
+| [Oracle Monitoring Tiers](docs/oracle_monitoring_tiers.md) | Decision matrix exporter-only vs exporter + DPA Repository |
+| [Oracle Runbooks](docs/runbooks/oracle) | Panduan tindakan untuk alert/advisory Oracle utama |
 | [Alert Catalog](docs/alert_catalog.md) | Threshold default dan arti operasional alert |
 | [Offline Manifest Template](docs/offline_package_manifest.example.csv) | Template versi package dan checksum yang disetujui |
 

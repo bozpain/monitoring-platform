@@ -68,6 +68,11 @@ validate_generated_targets() {
   fi
 
   echo "[INFO] Using pre-generated targets from repo"
+
+  if [ -d "./config/dpa/targets" ]; then
+    echo "[INFO] DPA env templates found:"
+    find ./config/dpa/targets -type f -name "*.env.example" -maxdepth 1 -print | sort || true
+  fi
 }
 
 validate_generated_targets

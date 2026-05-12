@@ -135,6 +135,7 @@ groups:
         annotations:
           summary: "Blocking session detected on {{ $labels.instance }}"
           description: "Blocking sessions > 0"
+          runbook_url: "docs/runbooks/oracle/blocking.md"
 
       - alert: OracleSevereBlocking
         expr: oracle_blocking_sessions{job="oracle"} >= 5
@@ -146,6 +147,7 @@ groups:
         annotations:
           summary: "Severe blocking on {{ $labels.instance }}"
           description: "Blocking sessions >= 5"
+          runbook_url: "docs/runbooks/oracle/blocking.md"
 
       - alert: OracleDeadlockDetected
         expr: increase(oracle_deadlocks_total{job="oracle"}[5m]) > 0
@@ -182,6 +184,7 @@ groups:
         annotations:
           summary: "High Oracle wait activity on {{ $labels.instance }}"
           description: "Wait class {{ $labels.wait_class }} has >= 10 active sessions. Check top waits and SQL activity."
+          runbook_url: "docs/runbooks/oracle/high_db_time.md"
 
       - alert: OracleHighDBTime
         expr: |
@@ -196,6 +199,7 @@ groups:
         annotations:
           summary: "High Oracle DB time on {{ $labels.instance }}"
           description: "DB time per second >= 60. Check wait class, top SQL, and host resource pressure."
+          runbook_url: "docs/runbooks/oracle/high_db_time.md"
 
       - alert: OracleDBTimeAnomaly
         expr: |
@@ -210,6 +214,7 @@ groups:
         annotations:
           summary: "Oracle DB time anomaly on {{ $labels.instance }}"
           description: "DB time is >2x its 7-day baseline. Check top wait events, top SQL rate, and recent plan changes."
+          runbook_url: "docs/runbooks/oracle/high_db_time.md"
 
       - alert: OracleWaitClassAnomaly
         expr: |
@@ -224,6 +229,7 @@ groups:
         annotations:
           summary: "Oracle wait class anomaly on {{ $labels.instance }}"
           description: "Wait class {{ $labels.wait_class }} is >2x its 7-day baseline."
+          runbook_url: "docs/runbooks/oracle/high_db_time.md"
 
       - alert: OraclePlanChangeRegression
         expr: |
@@ -240,6 +246,7 @@ groups:
         annotations:
           summary: "Possible Oracle SQL plan regression on {{ $labels.instance }}"
           description: "SQL {{ $labels.sql_id }} has multiple cached plans and elapsed time rate is >2x its 6-hour baseline. Plan={{ $labels.plan_hash_value }}, module={{ $labels.module }}."
+          runbook_url: "docs/runbooks/oracle/plan_regression.md"
 
       - alert: OracleLogFileSyncPressure
         expr: |
@@ -254,6 +261,7 @@ groups:
         annotations:
           summary: "Oracle commit latency pressure on {{ $labels.instance }}"
           description: "Multiple active sessions are waiting on log file sync. Check commit frequency, redo I/O latency, and application commit batching."
+          runbook_url: "docs/runbooks/oracle/log_file_sync.md"
 
       - alert: OracleSequentialReadPressure
         expr: |
@@ -268,6 +276,7 @@ groups:
         annotations:
           summary: "Oracle single-block read pressure on {{ $labels.instance }}"
           description: "High db file sequential read activity. Check top SQL by disk reads per execution, index access paths, and storage latency."
+          runbook_url: "docs/runbooks/oracle/db_file_sequential_read.md"
 
       - alert: OracleCursorContention
         expr: |
@@ -282,6 +291,7 @@ groups:
         annotations:
           summary: "Oracle cursor/library cache contention on {{ $labels.instance }}"
           description: "Event {{ $labels.event }} is active. Check parse storm, version count, recent deployments, and bind variable usage."
+          runbook_url: "docs/runbooks/oracle/parse_storm.md"
 
       - alert: OracleParseStorm
         expr: |
@@ -296,6 +306,7 @@ groups:
         annotations:
           summary: "Oracle parse storm on {{ $labels.instance }}"
           description: "SQL {{ $labels.sql_id }} parse calls are high. Module={{ $labels.module }}, schema={{ $labels.parsing_schema }}."
+          runbook_url: "docs/runbooks/oracle/parse_storm.md"
 
       - alert: OracleInefficientLogicalIO
         expr: |
@@ -310,3 +321,4 @@ groups:
         annotations:
           summary: "Oracle SQL high logical I/O per execution on {{ $labels.instance }}"
           description: "SQL {{ $labels.sql_id }} is doing high buffer gets per execution. Check predicates, indexes, join order, and plan {{ $labels.plan_hash_value }}."
+          runbook_url: "docs/runbooks/oracle/inefficient_logical_io.md"

@@ -145,10 +145,12 @@ vi inventory/targets.csv
 Required columns:
 
 ```text
-host,ip,node,oracle,mssql,app,tier,owner
+host,ip,node,oracle,oracle_dpa,oracle_service,mssql,app,tier,owner
 ```
 
-Gunakan `yes` atau `no` untuk kolom `node`, `oracle`, dan `mssql`.
+Gunakan `yes` atau `no` untuk kolom `node`, `oracle`, `oracle_dpa`, dan `mssql`.
+
+`oracle_dpa=yes` berarti database itu tetap dimonitor oleh exporter Prometheus, plus dibuatkan template env untuk deep DPA sampler. `oracle_service` dipakai untuk template `DPA_ORACLE_DSN`; isi dengan service name Oracle target.
 
 Generate Prometheus `file_sd` target files:
 
@@ -162,6 +164,7 @@ Generated files:
 config/targets/node_targets.yml
 config/targets/oracle_targets.yml
 config/targets/mssql_targets.yml
+config/dpa/targets/*.env.example
 ```
 
 Review generated target ports:
@@ -171,6 +174,14 @@ Review generated target ports:
 | Node | `9100` |
 | Oracle | `9161` |
 | MSSQL | `9182` |
+
+Untuk target dengan `oracle_dpa=yes`, copy template env ke VM setelah install DPA repository:
+
+```bash
+sudo cp config/dpa/targets/<target>.env.example /monitoring/dpa/conf/<target>.env
+sudo vi /monitoring/dpa/conf/<target>.env
+sudo systemctl enable --now dpa_sampler@<target>.timer
+```
 
 ## 6. Deploy All Components
 
