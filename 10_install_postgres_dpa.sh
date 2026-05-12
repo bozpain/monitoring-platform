@@ -18,13 +18,18 @@ REQ_SRC="./config/dpa/python-requirements.txt"
 SAMPLER_SRC="./scripts/dpa_sampler.py"
 SERVICE_SRC="./systemd/dpa_sampler.service"
 TIMER_SRC="./systemd/dpa_sampler.timer"
+TEMPLATE_SERVICE_SRC="./systemd/dpa_sampler@.service"
+TEMPLATE_TIMER_SRC="./systemd/dpa_sampler@.timer"
 
 SERVICE_DST="/etc/systemd/system/dpa_sampler.service"
 TIMER_DST="/etc/systemd/system/dpa_sampler.timer"
+TEMPLATE_SERVICE_DST="/etc/systemd/system/dpa_sampler@.service"
+TEMPLATE_TIMER_DST="/etc/systemd/system/dpa_sampler@.timer"
 
 DB_NAME="dpa_repository"
 APP_USER="dpa_app"
 READER_USER="dpa_reader"
+DPA_DEFAULT_INSTANCE="${DPA_DEFAULT_INSTANCE:-oracle-default}"
 
 echo "[INFO] Installing PostgreSQL DPA repository..."
 
@@ -52,6 +57,8 @@ require_file "$REQ_SRC"
 require_file "$SAMPLER_SRC"
 require_file "$SERVICE_SRC"
 require_file "$TIMER_SRC"
+require_file "$TEMPLATE_SERVICE_SRC"
+require_file "$TEMPLATE_TIMER_SRC"
 
 mkdir -p "$DPA_BIN_DIR" "$DPA_CONF_DIR" "$DPA_SQL_DIR" "$DPA_LOG_DIR" "$PYTHON_WHEEL_DIR"
 
@@ -198,15 +205,23 @@ install_sampler() {
   local app_password
   app_password=$(grep '^DPA_APP_PASSWORD=' "$DPA_CONF_DIR/dpa_repository.env" | cut -d= -f2-)
 
+  local default_env="$DPA_CONF_DIR/$DPA_DEFAULT_INSTANCE.env"
+  if [ ! -f "$default_env" ]; then
+    cp "$ENV_SRC" "$default_env"
+    sed -i "s|DPA_DB_UNIQUE_NAME=.*|DPA_DB_UNIQUE_NAME=$DPA_DEFAULT_INSTANCE|" "$default_env"
+    sed -i "s|DPA_POSTGRES_DSN=.*|DPA_POSTGRES_DSN=\"host=localhost port=5432 dbname=$DB_NAME user=$APP_USER password=$app_password\"|" "$default_env"
+    echo "[WARN] Created sampler env with Oracle credential placeholders: $default_env"
+  elif grep -q "password=CHANGE_ME" "$default_env"; then
+    sed -i "s|DPA_POSTGRES_DSN=.*|DPA_POSTGRES_DSN=\"host=localhost port=5432 dbname=$DB_NAME user=$APP_USER password=$app_password\"|" "$default_env"
+  fi
+
   if [ ! -f "$DPA_CONF_DIR/dpa_sampler.env" ]; then
-    cp "$ENV_SRC" "$DPA_CONF_DIR/dpa_sampler.env"
-    sed -i "s|DPA_POSTGRES_DSN=.*|DPA_POSTGRES_DSN=\"host=localhost port=5432 dbname=$DB_NAME user=$APP_USER password=$app_password\"|" "$DPA_CONF_DIR/dpa_sampler.env"
-    echo "[WARN] Created sampler env with Oracle credential placeholders: $DPA_CONF_DIR/dpa_sampler.env"
+    cp "$default_env" "$DPA_CONF_DIR/dpa_sampler.env"
   elif grep -q "password=CHANGE_ME" "$DPA_CONF_DIR/dpa_sampler.env"; then
     sed -i "s|DPA_POSTGRES_DSN=.*|DPA_POSTGRES_DSN=\"host=localhost port=5432 dbname=$DB_NAME user=$APP_USER password=$app_password\"|" "$DPA_CONF_DIR/dpa_sampler.env"
   fi
 
-  chmod 600 "$DPA_CONF_DIR/dpa_sampler.env"
+  chmod 600 "$DPA_CONF_DIR"/*.env
   chown -R monitoring:monitoring "$DPA_DIR" "$DPA_LOG_DIR"
 }
 
@@ -215,21 +230,24 @@ install_systemd_units() {
 
   cp "$SERVICE_SRC" "$SERVICE_DST"
   cp "$TIMER_SRC" "$TIMER_DST"
+  cp "$TEMPLATE_SERVICE_SRC" "$TEMPLATE_SERVICE_DST"
+  cp "$TEMPLATE_TIMER_SRC" "$TEMPLATE_TIMER_DST"
 
-  systemd-analyze verify "$SERVICE_DST" "$TIMER_DST" || true
+  systemd-analyze verify "$SERVICE_DST" "$TIMER_DST" "$TEMPLATE_SERVICE_DST" "$TEMPLATE_TIMER_DST" || true
   systemctl daemon-reload
   systemctl enable dpa_sampler.timer
+  systemctl enable "dpa_sampler@$DPA_DEFAULT_INSTANCE.timer"
 
-  if grep -q "CHANGE_ME" "$DPA_CONF_DIR/dpa_sampler.env"; then
+  if grep -q "CHANGE_ME" "$DPA_CONF_DIR/$DPA_DEFAULT_INSTANCE.env"; then
     echo "[WARN] Oracle DPA sampler credential placeholders still exist."
-    echo "[WARN] Timer enabled but not started. Edit $DPA_CONF_DIR/dpa_sampler.env first."
+    echo "[WARN] Template timer enabled but not started. Edit $DPA_CONF_DIR/$DPA_DEFAULT_INSTANCE.env first."
   elif python3 - <<'PY' >/dev/null 2>&1
 import oracledb
 import psycopg2
 PY
   then
-    systemctl restart dpa_sampler.timer
-    systemctl start dpa_sampler.service || true
+    systemctl restart "dpa_sampler@$DPA_DEFAULT_INSTANCE.timer"
+    systemctl start "dpa_sampler@$DPA_DEFAULT_INSTANCE.service" || true
   else
     echo "[WARN] Timer enabled but not started because Python dependencies are missing."
   fi
@@ -269,13 +287,18 @@ update_grafana_env
 
 echo "[DONE] PostgreSQL DPA repository installed"
 echo "[NEXT] Edit Oracle sampler credentials:"
-echo "       vi $DPA_CONF_DIR/dpa_sampler.env"
+echo "       vi $DPA_CONF_DIR/$DPA_DEFAULT_INSTANCE.env"
+echo ""
+echo "For additional Oracle targets:"
+echo "       cp $DPA_CONF_DIR/$DPA_DEFAULT_INSTANCE.env $DPA_CONF_DIR/oracle-prod-02.env"
+echo "       vi $DPA_CONF_DIR/oracle-prod-02.env"
+echo "       systemctl enable --now dpa_sampler@oracle-prod-02.timer"
 echo ""
 echo "Then install Python wheels if needed:"
 echo "       cp oracledb*.whl psycopg2*.whl $PYTHON_WHEEL_DIR/"
 echo "       ./10_install_postgres_dpa.sh"
 echo ""
 echo "Start sampler:"
-echo "       systemctl restart dpa_sampler.timer"
-echo "       systemctl start dpa_sampler.service"
-echo "       journalctl -u dpa_sampler.service -n 100 --no-pager"
+echo "       systemctl restart dpa_sampler@$DPA_DEFAULT_INSTANCE.timer"
+echo "       systemctl start dpa_sampler@$DPA_DEFAULT_INSTANCE.service"
+echo "       journalctl -u dpa_sampler@$DPA_DEFAULT_INSTANCE.service -n 100 --no-pager"

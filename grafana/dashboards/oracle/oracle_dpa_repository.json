@@ -3,7 +3,7 @@
   "uid": "oracle-dpa-repository",
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "30s",
   "tags": ["oracle", "dpa", "postgres", "repository"],
   "editable": true,
@@ -105,7 +105,7 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT sql_id, plan_hash_value, module, service_name, wait_class, event, active_seconds, impact_score, left(sample_sql_text, 240) AS sql_text_sample FROM dpa.v_sql_impact_1h WHERE db_unique_name = '$db_unique_name' AND ('$sql_id' = 'All' OR sql_id = '$sql_id') ORDER BY impact_score DESC LIMIT 50"
+          "rawSql": "SELECT con_id, pdb_name, sql_id, plan_hash_value, module, service_name, wait_class, event, active_seconds, impact_score, left(sample_sql_text, 240) AS sql_text_sample FROM dpa.v_sql_impact_1h WHERE db_unique_name = '$db_unique_name' AND ('$sql_id' = 'All' OR sql_id = '$sql_id') ORDER BY impact_score DESC LIMIT 50"
         }
       ],
       "options": { "showHeader": true, "sortBy": [{ "displayName": "impact_score", "desc": true }] }
@@ -135,7 +135,7 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT sql_id, plan_count, first_seen, last_seen, plan_hash_values FROM dpa.v_plan_changes_24h WHERE db_unique_name = '$db_unique_name' AND ('$sql_id' = 'All' OR sql_id = '$sql_id') ORDER BY last_seen DESC LIMIT 50"
+          "rawSql": "SELECT con_id, pdb_name, sql_id, plan_count, first_seen, last_seen, plan_hash_values FROM dpa.v_plan_changes_24h WHERE db_unique_name = '$db_unique_name' AND ('$sql_id' = 'All' OR sql_id = '$sql_id') ORDER BY last_seen DESC LIMIT 50"
         }
       ],
       "options": { "showHeader": true }
@@ -150,7 +150,7 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT snapshot_time, sql_id, plan_hash_value, parsing_schema_name, module, service_name, executions, elapsed_time_us, cpu_time_us, buffer_gets, disk_reads, rows_processed, parse_calls, left(sql_text, 800) AS sql_text FROM dpa.sql_snapshot WHERE db_unique_name = '$db_unique_name' AND ('$sql_id' = 'All' OR sql_id = '$sql_id') ORDER BY snapshot_time DESC, elapsed_time_us DESC LIMIT 50"
+          "rawSql": "SELECT snapshot_time, inst_id, con_id, pdb_name, sql_id, plan_hash_value, parsing_schema_name, module, service_name, executions, elapsed_time_us, cpu_time_us, buffer_gets, disk_reads, rows_processed, parse_calls, left(sql_text, 800) AS sql_text FROM dpa.sql_snapshot WHERE db_unique_name = '$db_unique_name' AND ('$sql_id' = 'All' OR sql_id = '$sql_id') ORDER BY snapshot_time DESC, elapsed_time_us DESC LIMIT 50"
         }
       ],
       "options": { "showHeader": true }
@@ -165,7 +165,7 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT snapshot_time, sql_id, plan_hash_value, child_number, id, parent_id, operation, options, object_owner, object_name, object_type, cardinality, cost, optimizer FROM dpa.sql_plan_snapshot WHERE db_unique_name = '$db_unique_name' AND ('$sql_id' = 'All' OR sql_id = '$sql_id') ORDER BY snapshot_time DESC, sql_id, plan_hash_value, child_number, id LIMIT 200"
+          "rawSql": "SELECT snapshot_time, inst_id, con_id, pdb_name, sql_id, plan_hash_value, child_number, id, parent_id, operation, options, object_owner, object_name, object_type, cardinality, cost, optimizer FROM dpa.sql_plan_snapshot WHERE db_unique_name = '$db_unique_name' AND ('$sql_id' = 'All' OR sql_id = '$sql_id') ORDER BY snapshot_time DESC, sql_id, plan_hash_value, child_number, id LIMIT 200"
         }
       ],
       "options": { "showHeader": true }
@@ -180,7 +180,7 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT event_time, source, event_type, object_owner, object_name, object_type, details FROM dpa.v_recent_changes WHERE db_unique_name = '$db_unique_name' ORDER BY event_time DESC LIMIT 100"
+          "rawSql": "SELECT event_time, con_id, pdb_name, source, event_type, object_owner, object_name, object_type, details FROM dpa.v_recent_changes WHERE db_unique_name = '$db_unique_name' ORDER BY event_time DESC LIMIT 100"
         }
       ],
       "options": { "showHeader": true }
@@ -195,7 +195,7 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT sample_time, owner, object_name, object_type, metric_name, value FROM dpa.object_stats_snapshot WHERE db_unique_name = '$db_unique_name' AND sample_time >= now() - interval '6 hours' ORDER BY value DESC LIMIT 100"
+          "rawSql": "SELECT sample_time, con_id, pdb_name, owner, object_name, object_type, metric_name, value FROM dpa.object_stats_snapshot WHERE db_unique_name = '$db_unique_name' AND sample_time >= now() - interval '6 hours' ORDER BY value DESC LIMIT 100"
         }
       ],
       "options": { "showHeader": true }
@@ -210,7 +210,7 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT iso_dow, hour_of_day, wait_class, event, avg_samples_per_hour FROM dpa.v_wait_seasonal_baseline WHERE db_unique_name = '$db_unique_name' ORDER BY avg_samples_per_hour DESC LIMIT 100"
+          "rawSql": "SELECT con_id, pdb_name, iso_dow, hour_of_day, wait_class, event, avg_samples_per_hour FROM dpa.v_wait_seasonal_baseline WHERE db_unique_name = '$db_unique_name' ORDER BY avg_samples_per_hour DESC LIMIT 100"
         }
       ],
       "options": { "showHeader": true }
@@ -240,7 +240,37 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT sql_id, plan_hash_value, last_seen, plan_count, plan_signature FROM dpa.v_plan_diff_24h WHERE db_unique_name = '$db_unique_name' AND ('$sql_id' = 'All' OR sql_id = '$sql_id') ORDER BY sql_id, plan_hash_value LIMIT 50"
+          "rawSql": "SELECT con_id, pdb_name, sql_id, plan_hash_value, last_seen, plan_count, plan_signature FROM dpa.v_plan_diff_24h WHERE db_unique_name = '$db_unique_name' AND ('$sql_id' = 'All' OR sql_id = '$sql_id') ORDER BY sql_id, plan_hash_value LIMIT 50"
+        }
+      ],
+      "options": { "showHeader": true }
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Oracle Operational Signals",
+      "gridPos": { "x": 0, "y": 65, "w": 24, "h": 9 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT sample_time, inst_id, con_id, pdb_name, category, metric_name, object_owner, object_name, status, value, details FROM dpa.v_oracle_ops_latest WHERE db_unique_name = '$db_unique_name' ORDER BY category, metric_name, value DESC NULLS LAST LIMIT 200"
+        }
+      ],
+      "options": { "showHeader": true }
+    },
+    {
+      "id": 16,
+      "type": "table",
+      "title": "Repository Size and Ingest Rate",
+      "gridPos": { "x": 0, "y": 74, "w": 24, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT s.table_name, s.total_size, s.estimated_rows, coalesce(r.rows_last_hour, 0) AS rows_last_hour, coalesce(r.estimated_rows_per_day, 0) AS estimated_rows_per_day FROM dpa.v_repository_table_size s LEFT JOIN dpa.v_repository_ingest_rate r ON r.table_name = s.table_name AND r.db_unique_name = '$db_unique_name' ORDER BY s.total_bytes DESC"
         }
       ],
       "options": { "showHeader": true }

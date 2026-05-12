@@ -108,11 +108,13 @@ def get_db_identity(ora_conn, configured_name: str) -> dict[str, Any]:
           d.name AS db_name,
           NVL(d.db_unique_name, d.name) AS db_unique_name,
           d.platform_name AS platform_name,
+          i.inst_id AS inst_id,
           i.instance_name AS instance_name,
           i.host_name AS host_name,
           i.version AS version
         FROM v$database d
-        CROSS JOIN v$instance i
+        CROSS JOIN gv$instance i
+        WHERE i.inst_id = USERENV('INSTANCE')
         """,
     )
     if not rows:
@@ -128,12 +130,13 @@ def upsert_db_instance(pg_conn, identity: dict[str, Any]) -> None:
         cur.execute(
             """
             INSERT INTO dpa.db_instance (
-              db_unique_name, db_name, instance_name, host_name, version, platform_name, last_seen
+              db_unique_name, db_name, instance_name, inst_id, host_name, version, platform_name, last_seen
             )
-            VALUES (%s, %s, %s, %s, %s, %s, now())
+            VALUES (%s, %s, %s, %s, %s, %s, %s, now())
             ON CONFLICT (db_unique_name) DO UPDATE SET
               db_name = EXCLUDED.db_name,
               instance_name = EXCLUDED.instance_name,
+              inst_id = EXCLUDED.inst_id,
               host_name = EXCLUDED.host_name,
               version = EXCLUDED.version,
               platform_name = EXCLUDED.platform_name,
@@ -143,6 +146,7 @@ def upsert_db_instance(pg_conn, identity: dict[str, Any]) -> None:
                 identity.get("db_unique_name"),
                 identity.get("db_name"),
                 identity.get("instance_name"),
+                identity.get("inst_id"),
                 identity.get("host_name"),
                 identity.get("version"),
                 identity.get("platform_name"),
@@ -155,6 +159,9 @@ def sample_ash(ora_conn, pg_conn, identity: dict[str, Any], sample_seconds: int)
         ora_conn,
         """
         SELECT
+          s.inst_id,
+          s.con_id,
+          NVL(c.name, 'CDB$ROOT') AS pdb_name,
           s.sid,
           s.serial# AS serial_no,
           NVL(s.username, 'UNKNOWN') AS username,
@@ -170,8 +177,9 @@ def sample_ash(ora_conn, pg_conn, identity: dict[str, Any], sample_seconds: int)
           SUBSTR(NVL(s.machine, 'UNKNOWN'), 1, 120) AS machine,
           SUBSTR(NVL(s.program, 'UNKNOWN'), 1, 120) AS program,
           s.blocking_session
-        FROM v$session s
-        LEFT JOIN v$sql q ON s.sql_id = q.sql_id AND s.sql_child_number = q.child_number
+        FROM gv$session s
+        LEFT JOIN gv$sql q ON s.inst_id = q.inst_id AND s.sql_id = q.sql_id AND s.sql_child_number = q.child_number
+        LEFT JOIN v$containers c ON s.con_id = c.con_id
         WHERE s.status = 'ACTIVE'
         AND s.type = 'USER'
         """,
@@ -183,17 +191,21 @@ def sample_ash(ora_conn, pg_conn, identity: dict[str, Any], sample_seconds: int)
         pg_conn,
         """
         INSERT INTO dpa.ash_sample (
-          sample_time, db_unique_name, instance_name, sid, serial_no, username, status,
-          session_state, sql_id, plan_hash_value, wait_class, event, module, action,
-          service_name, machine, program, blocking_session, sample_seconds
+          sample_time, db_unique_name, inst_id, instance_name, con_id, pdb_name, sid,
+          serial_no, username, status, session_state, sql_id, plan_hash_value,
+          wait_class, event, module, action, service_name, machine, program,
+          blocking_session, sample_seconds
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (
             (
                 now,
                 db_unique_name,
+                row.get("inst_id"),
                 instance_name,
+                row.get("con_id"),
+                row.get("pdb_name"),
                 row.get("sid"),
                 row.get("serial_no"),
                 truncate(row.get("username"), 128),
@@ -223,6 +235,9 @@ def snapshot_sql(ora_conn, pg_conn, identity: dict[str, Any], top_n: int) -> int
         SELECT *
         FROM (
           SELECT
+            q.inst_id,
+            q.con_id,
+            NVL(c.name, 'CDB$ROOT') AS pdb_name,
             sql_id,
             plan_hash_value,
             parsing_schema_name,
@@ -239,9 +254,10 @@ def snapshot_sql(ora_conn, pg_conn, identity: dict[str, Any], top_n: int) -> int
             parse_calls,
             version_count,
             DBMS_LOB.SUBSTR(sql_fulltext, 4000, 1) AS sql_text
-          FROM v$sql
-          WHERE sql_id IS NOT NULL
-          AND last_active_time >= SYSDATE - (1 / 24)
+          FROM gv$sql q
+          LEFT JOIN v$containers c ON q.con_id = c.con_id
+          WHERE q.sql_id IS NOT NULL
+          AND q.last_active_time >= SYSDATE - (1 / 24)
           ORDER BY elapsed_time DESC
         )
         WHERE rownum <= :top_n
@@ -254,17 +270,20 @@ def snapshot_sql(ora_conn, pg_conn, identity: dict[str, Any], top_n: int) -> int
         pg_conn,
         """
         INSERT INTO dpa.sql_snapshot (
-          snapshot_time, db_unique_name, sql_id, plan_hash_value, parsing_schema_name,
-          module, action, service_name, last_active_time, executions, elapsed_time_us,
-          cpu_time_us, buffer_gets, disk_reads, rows_processed, parse_calls,
-          version_count, sql_text
+          snapshot_time, db_unique_name, inst_id, con_id, pdb_name, sql_id,
+          plan_hash_value, parsing_schema_name, module, action, service_name,
+          last_active_time, executions, elapsed_time_us, cpu_time_us, buffer_gets,
+          disk_reads, rows_processed, parse_calls, version_count, sql_text
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (
             (
                 now,
                 db_unique_name,
+                row.get("inst_id"),
+                row.get("con_id"),
+                row.get("pdb_name"),
                 row.get("sql_id"),
                 row.get("plan_hash_value"),
                 truncate(row.get("parsing_schema_name"), 128),
@@ -292,6 +311,9 @@ def snapshot_plans(ora_conn, pg_conn, identity: dict[str, Any], top_n: int) -> i
         ora_conn,
         """
         SELECT
+          p.inst_id,
+          p.con_id,
+          NVL(c.name, 'CDB$ROOT') AS pdb_name,
           p.sql_id,
           p.plan_hash_value,
           p.child_number,
@@ -306,12 +328,13 @@ def snapshot_plans(ora_conn, pg_conn, identity: dict[str, Any], top_n: int) -> i
           p.bytes,
           p.cost,
           p.optimizer
-        FROM v$sql_plan p
+        FROM gv$sql_plan p
+        LEFT JOIN v$containers c ON p.con_id = c.con_id
         WHERE p.sql_id IN (
           SELECT sql_id
           FROM (
             SELECT sql_id, SUM(elapsed_time) AS elapsed_time
-            FROM v$sql
+            FROM gv$sql
             WHERE sql_id IS NOT NULL
             AND last_active_time >= SYSDATE - (1 / 24)
             GROUP BY sql_id
@@ -329,16 +352,19 @@ def snapshot_plans(ora_conn, pg_conn, identity: dict[str, Any], top_n: int) -> i
         pg_conn,
         """
         INSERT INTO dpa.sql_plan_snapshot (
-          snapshot_time, db_unique_name, sql_id, plan_hash_value, child_number,
-          id, parent_id, operation, options, object_owner, object_name, object_type,
-          cardinality, bytes, cost, optimizer
+          snapshot_time, db_unique_name, inst_id, con_id, pdb_name, sql_id,
+          plan_hash_value, child_number, id, parent_id, operation, options,
+          object_owner, object_name, object_type, cardinality, bytes, cost, optimizer
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (
             (
                 now,
                 db_unique_name,
+                row.get("inst_id"),
+                row.get("con_id"),
+                row.get("pdb_name"),
                 row.get("sql_id"),
                 row.get("plan_hash_value"),
                 row.get("child_number"),
@@ -364,6 +390,9 @@ def snapshot_blocking(ora_conn, pg_conn, identity: dict[str, Any]) -> int:
         ora_conn,
         """
         SELECT
+          s.inst_id,
+          s.con_id,
+          NVL(c.name, 'CDB$ROOT') AS pdb_name,
           b.sid AS blocking_sid,
           s.sid AS blocked_sid,
           NVL(b.sql_id, 'UNKNOWN') AS blocking_sql_id,
@@ -374,8 +403,9 @@ def snapshot_blocking(ora_conn, pg_conn, identity: dict[str, Any]) -> int:
           SUBSTR(NVL(s.event, 'UNKNOWN'), 1, 120) AS event,
           SUBSTR(NVL(s.module, 'UNKNOWN'), 1, 80) AS module,
           SUBSTR(NVL(s.machine, 'UNKNOWN'), 1, 120) AS machine
-        FROM v$session s
-        JOIN v$session b ON s.blocking_session = b.sid
+        FROM gv$session s
+        JOIN gv$session b ON s.inst_id = b.inst_id AND s.blocking_session = b.sid
+        LEFT JOIN v$containers c ON s.con_id = c.con_id
         WHERE s.blocking_session IS NOT NULL
         """,
     )
@@ -385,15 +415,19 @@ def snapshot_blocking(ora_conn, pg_conn, identity: dict[str, Any]) -> int:
         pg_conn,
         """
         INSERT INTO dpa.blocking_episode (
-          sample_time, db_unique_name, blocking_sid, blocked_sid, blocking_sql_id,
-          blocked_sql_id, blocking_user, blocked_user, wait_class, event, module, machine
+          sample_time, db_unique_name, inst_id, con_id, pdb_name, blocking_sid,
+          blocked_sid, blocking_sql_id, blocked_sql_id, blocking_user, blocked_user,
+          wait_class, event, module, machine
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (
             (
                 now,
                 db_unique_name,
+                row.get("inst_id"),
+                row.get("con_id"),
+                row.get("pdb_name"),
                 row.get("blocking_sid"),
                 row.get("blocked_sid"),
                 row.get("blocking_sql_id"),
@@ -416,6 +450,8 @@ def snapshot_change_events(ora_conn, pg_conn, identity: dict[str, Any], lookback
         """
         SELECT
           last_ddl_time AS event_time,
+          TO_NUMBER(SYS_CONTEXT('USERENV', 'CON_ID')) AS con_id,
+          'UNKNOWN' AS pdb_name,
           'DBA_OBJECTS' AS source,
           'DDL_CHANGE' AS event_type,
           owner AS object_owner,
@@ -435,15 +471,17 @@ def snapshot_change_events(ora_conn, pg_conn, identity: dict[str, Any], lookback
             cur.execute(
                 """
                 INSERT INTO dpa.change_event (
-                  event_time, db_unique_name, source, event_type, object_owner,
-                  object_name, object_type, details
+                  event_time, db_unique_name, con_id, pdb_name, source, event_type,
+                  object_owner, object_name, object_type, details
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT DO NOTHING
                 """,
                 (
                     row.get("event_time"),
                     db_unique_name,
+                    row.get("con_id"),
+                    row.get("pdb_name"),
                     row.get("source"),
                     row.get("event_type"),
                     row.get("object_owner"),
@@ -463,6 +501,7 @@ def snapshot_object_stats(ora_conn, pg_conn, identity: dict[str, Any]) -> int:
         SELECT *
         FROM (
           SELECT
+            con_id,
             owner,
             object_name,
             subobject_name,
@@ -484,14 +523,17 @@ def snapshot_object_stats(ora_conn, pg_conn, identity: dict[str, Any]) -> int:
         pg_conn,
         """
         INSERT INTO dpa.object_stats_snapshot (
-          sample_time, db_unique_name, owner, object_name, object_type, metric_name, value
+          sample_time, db_unique_name, con_id, pdb_name, owner, object_name,
+          object_type, metric_name, value
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (
             (
                 now,
                 db_unique_name,
+                row.get("con_id"),
+                "UNKNOWN",
                 row.get("owner"),
                 row.get("object_name"),
                 row.get("object_type"),
@@ -501,6 +543,113 @@ def snapshot_object_stats(ora_conn, pg_conn, identity: dict[str, Any]) -> int:
             for row in rows
         ),
     )
+
+
+def snapshot_oracle_ops(ora_conn, pg_conn, identity: dict[str, Any]) -> int:
+    now = datetime.now(timezone.utc)
+    db_unique_name = identity["db_unique_name"]
+    inst_id = identity.get("inst_id")
+    queries = [
+        (
+            "invalid-objects",
+            """
+            SELECT TO_NUMBER(SYS_CONTEXT('USERENV', 'CON_ID')) AS con_id, 'object-health' AS category, 'invalid_objects' AS metric_name,
+                   owner AS object_owner, object_type AS object_name, status,
+                   COUNT(*) AS value, object_type AS details
+            FROM dba_objects
+            WHERE status <> 'VALID'
+            AND owner NOT IN ('SYS', 'SYSTEM')
+            GROUP BY owner, object_type, status
+            """,
+        ),
+        (
+            "unusable-indexes",
+            """
+            SELECT NULL AS con_id, 'index-health' AS category, 'unusable_indexes' AS metric_name,
+                   owner AS object_owner, index_name AS object_name, status,
+                   1 AS value, table_name AS details
+            FROM dba_indexes
+            WHERE status = 'UNUSABLE'
+            """,
+        ),
+        (
+            "stale-stats",
+            """
+            SELECT NULL AS con_id, 'optimizer-stats' AS category, 'stale_table_stats' AS metric_name,
+                   owner AS object_owner, table_name AS object_name, stale_stats AS status,
+                   1 AS value, 'num_rows=' || NVL(TO_CHAR(num_rows), 'unknown') AS details
+            FROM dba_tab_statistics
+            WHERE stale_stats = 'YES'
+            AND owner NOT IN ('SYS', 'SYSTEM')
+            """,
+        ),
+        (
+            "scheduler-failures",
+            """
+            SELECT NULL AS con_id, 'scheduler' AS category, 'failed_jobs_24h' AS metric_name,
+                   owner AS object_owner, job_name AS object_name, status,
+                   1 AS value, additional_info AS details
+            FROM dba_scheduler_job_run_details
+            WHERE status <> 'SUCCEEDED'
+            AND log_date >= SYSTIMESTAMP - INTERVAL '24' HOUR
+            """,
+        ),
+        (
+            "rman-backup-age",
+            """
+            SELECT NULL AS con_id, 'backup' AS category, 'latest_rman_backup_age_hours' AS metric_name,
+                   NULL AS object_owner, input_type AS object_name, status,
+                   ROUND((SYSDATE - MAX(end_time)) * 24, 2) AS value,
+                   'latest_end_time=' || TO_CHAR(MAX(end_time), 'YYYY-MM-DD HH24:MI:SS') AS details
+            FROM v$rman_backup_job_details
+            WHERE end_time IS NOT NULL
+            GROUP BY input_type, status
+            """,
+        ),
+        (
+            "data-guard-lag",
+            """
+            SELECT NULL AS con_id, 'dataguard' AS category, name AS metric_name,
+                   NULL AS object_owner, NULL AS object_name, unit AS status,
+                   NULL AS value, value AS details
+            FROM v$dataguard_stats
+            WHERE name IN ('transport lag', 'apply lag', 'apply finish time')
+            """,
+        ),
+    ]
+    total = 0
+    with pg_conn.cursor() as cur:
+        for _, sql in queries:
+            try:
+                rows = oracle_query(ora_conn, sql)
+            except Exception:
+                continue
+            for row in rows:
+                cur.execute(
+                    """
+                    INSERT INTO dpa.oracle_ops_snapshot (
+                      sample_time, db_unique_name, inst_id, con_id, pdb_name, category,
+                      metric_name, object_owner, object_name, status, value, details
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        now,
+                        db_unique_name,
+                        inst_id,
+                        row.get("con_id"),
+                        "UNKNOWN",
+                        row.get("category"),
+                        row.get("metric_name"),
+                        row.get("object_owner"),
+                        row.get("object_name"),
+                        row.get("status"),
+                        row.get("value"),
+                        row.get("details"),
+                    ),
+                )
+                total += 1
+    return total
 
 
 def generate_advisories(pg_conn, identity: dict[str, Any]) -> int:
@@ -639,6 +788,11 @@ def run_once() -> None:
                     counts["object_stats"] = snapshot_object_stats(ora_conn, pg_conn, identity)
                 except Exception as exc:
                     counts["object_stats_error"] = truncate(exc, 120)
+            if env_bool("DPA_ENABLE_ORACLE_OPS", True):
+                try:
+                    counts["oracle_ops"] = snapshot_oracle_ops(ora_conn, pg_conn, identity)
+                except Exception as exc:
+                    counts["oracle_ops_error"] = truncate(exc, 120)
             if env_bool("DPA_ENABLE_ADVISORY", True):
                 counts["advisories"] = generate_advisories(pg_conn, identity)
 

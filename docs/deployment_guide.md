@@ -219,7 +219,7 @@ sudo ./09_health_check.sh
 
 Node exporter start langsung karena tidak membutuhkan database credential. Oracle dan MSSQL exporters hanya start otomatis jika connection string sudah benar.
 
-`10_install_postgres_dpa.sh` membuat PostgreSQL local repository, user `dpa_app`, user `dpa_reader`, schema `dpa`, datasource Grafana `DPA Repository`, dan systemd timer `dpa_sampler.timer`. Timer tidak dipaksa start selama `/monitoring/dpa/conf/dpa_sampler.env` masih berisi placeholder Oracle `CHANGE_ME`.
+`10_install_postgres_dpa.sh` membuat PostgreSQL local repository, user `dpa_app`, user `dpa_reader`, schema `dpa`, datasource Grafana `DPA Repository`, dan templated systemd timer `dpa_sampler@<target>.timer`. Timer tidak dipaksa start selama file env target di `/monitoring/dpa/conf/<target>.env` masih berisi placeholder Oracle `CHANGE_ME`.
 
 ## 8. Configure Database Exporters
 
@@ -242,8 +242,14 @@ GRANT SELECT ON sys.v_$sqlarea TO monitoring_user;
 GRANT SELECT ON sys.v_$sql_plan TO monitoring_user;
 GRANT SELECT ON sys.v_$database TO monitoring_user;
 GRANT SELECT ON sys.v_$instance TO monitoring_user;
+GRANT SELECT ON sys.v_$containers TO monitoring_user;
 GRANT SELECT ON sys.v_$segment_statistics TO monitoring_user;
+GRANT SELECT ON sys.v_$rman_backup_job_details TO monitoring_user;
+GRANT SELECT ON sys.v_$dataguard_stats TO monitoring_user;
 GRANT SELECT ON sys.dba_objects TO monitoring_user;
+GRANT SELECT ON sys.dba_indexes TO monitoring_user;
+GRANT SELECT ON sys.dba_tab_statistics TO monitoring_user;
+GRANT SELECT ON sys.dba_scheduler_job_run_details TO monitoring_user;
 
 GRANT SELECT ON sys.dba_data_files TO monitoring_user;
 GRANT SELECT ON sys.dba_free_space TO monitoring_user;
@@ -268,14 +274,14 @@ Untuk multitenant deployment, buat user di PDB yang dimonitor kecuali DBA team m
 /monitoring/exporters/oracle/oracle-metrics.toml
 ```
 
-Tambahan `v_$sql_plan`, `v_$segment_statistics`, dan `dba_objects` dipakai oleh DPA repository sampler untuk plan history, hot object signals, dan change correlation. Jika grant tersebut tidak diizinkan, set modul opsional ini ke `false` di `/monitoring/dpa/conf/dpa_sampler.env`.
+Tambahan `v_$sql_plan`, `v_$segment_statistics`, `v_$rman_backup_job_details`, `v_$dataguard_stats`, `dba_objects`, `dba_indexes`, `dba_tab_statistics`, dan `dba_scheduler_job_run_details` dipakai oleh DPA repository sampler untuk plan history, hot object signals, Data Guard, backup age, failed jobs, invalid objects, stale stats, unusable indexes, dan change correlation. Jika grant tersebut tidak diizinkan, set modul opsional ini ke `false` di file env target.
 
 ### Oracle DPA Repository Sampler
 
 Edit credential:
 
 ```bash
-sudo vi /monitoring/dpa/conf/dpa_sampler.env
+sudo vi /monitoring/dpa/conf/oracle-default.env
 ```
 
 Minimum:
@@ -296,16 +302,25 @@ DPA_RETENTION_DAYS=35
 DPA_ENABLE_PLAN_SNAPSHOT=true
 DPA_ENABLE_OBJECT_STATS=true
 DPA_ENABLE_CHANGE_EVENTS=true
+DPA_ENABLE_ORACLE_OPS=true
 DPA_ENABLE_ADVISORY=true
 ```
 
 Start and validate:
 
 ```bash
-sudo systemctl restart dpa_sampler.timer
-sudo systemctl start dpa_sampler.service
-sudo journalctl -u dpa_sampler.service -n 100 --no-pager
+sudo systemctl restart dpa_sampler@oracle-default.timer
+sudo systemctl start dpa_sampler@oracle-default.service
+sudo journalctl -u dpa_sampler@oracle-default.service -n 100 --no-pager
 sudo runuser -u postgres -- psql -d dpa_repository -c "SELECT count(*) FROM dpa.ash_sample;"
+```
+
+For another Oracle target:
+
+```bash
+sudo cp /monitoring/dpa/conf/oracle-default.env /monitoring/dpa/conf/oracle-prod-02.env
+sudo vi /monitoring/dpa/conf/oracle-prod-02.env
+sudo systemctl enable --now dpa_sampler@oracle-prod-02.timer
 ```
 
 Grafana dashboard:

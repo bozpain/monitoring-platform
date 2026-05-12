@@ -109,6 +109,9 @@ For data that is too detailed or too high-cardinality for Prometheus, the platfo
 | Plan history and diff inputs | `dpa.sql_plan_snapshot`, `dpa.v_plan_changes_24h`, `dpa.v_plan_diff_24h` | Compare plan hashes, operations, objects, cost, and cardinality across time |
 | Change correlation | `dpa.change_event`, `dpa.v_recent_changes` | Correlate DDL/object changes with performance shifts |
 | Table/index advisor inputs | `dpa.object_stats_snapshot` | Identify hot objects and contention-prone segments |
+| Oracle operational coverage | `dpa.oracle_ops_snapshot`, `dpa.v_oracle_ops_latest` | Track Data Guard lag, RMAN backup age, failed scheduler jobs, invalid objects, stale stats, and unusable indexes |
+| RAC/CDB/PDB context | `inst_id`, `con_id`, `pdb_name` columns | Split DPA analysis by RAC instance and PDB |
 | Impact scoring | `dpa.v_sql_impact_1h`, `dpa.app_slo` | Prioritize SQL by active time and business weight |
 | Runbook/advisory queue | `dpa.dpa_advisory`, `dpa.v_advisory_queue` | Show diagnosis hints and suggested next actions in Grafana |
 | Seasonal baseline | `dpa.v_wait_seasonal_baseline` | Compare waits by day-of-week and hour-of-day patterns |
+| Repository sizing | `dpa.v_repository_table_size`, `dpa.v_repository_ingest_rate` | Estimate retention pressure and daily row growth |

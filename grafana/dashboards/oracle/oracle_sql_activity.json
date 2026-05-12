@@ -8,6 +8,13 @@
   "tags": ["oracle", "sql", "performance"],
   "editable": true,
   "graphTooltip": 1,
+  "links": [
+    {
+      "title": "Open DPA Repository",
+      "type": "link",
+      "url": "/d/oracle-dpa-repository"
+    }
+  ],
   "templating": {
     "list": [
       {
@@ -162,7 +169,26 @@
           "format": "table",
           "instant": true
         }
-      ]
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "sql_id" },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open SQL in DPA Repository",
+                    "url": "/d/oracle-dpa-repository?var-sql_id=${__value.raw}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": 10,

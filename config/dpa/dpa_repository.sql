@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS dpa.db_instance (
   db_unique_name text PRIMARY KEY,
   db_name text,
   instance_name text,
+  inst_id integer,
   host_name text,
   version text,
   platform_name text,
@@ -17,7 +18,10 @@ CREATE TABLE IF NOT EXISTS dpa.db_instance (
 CREATE TABLE IF NOT EXISTS dpa.ash_sample (
   sample_time timestamptz NOT NULL,
   db_unique_name text NOT NULL,
+  inst_id integer,
   instance_name text,
+  con_id integer,
+  pdb_name text,
   sid integer,
   serial_no integer,
   username text,
@@ -39,6 +43,9 @@ CREATE TABLE IF NOT EXISTS dpa.ash_sample (
 CREATE TABLE IF NOT EXISTS dpa.sql_snapshot (
   snapshot_time timestamptz NOT NULL,
   db_unique_name text NOT NULL,
+  inst_id integer,
+  con_id integer,
+  pdb_name text,
   sql_id text NOT NULL,
   plan_hash_value numeric,
   parsing_schema_name text,
@@ -60,6 +67,9 @@ CREATE TABLE IF NOT EXISTS dpa.sql_snapshot (
 CREATE TABLE IF NOT EXISTS dpa.sql_plan_snapshot (
   snapshot_time timestamptz NOT NULL,
   db_unique_name text NOT NULL,
+  inst_id integer,
+  con_id integer,
+  pdb_name text,
   sql_id text NOT NULL,
   plan_hash_value numeric NOT NULL,
   child_number integer,
@@ -79,6 +89,9 @@ CREATE TABLE IF NOT EXISTS dpa.sql_plan_snapshot (
 CREATE TABLE IF NOT EXISTS dpa.blocking_episode (
   sample_time timestamptz NOT NULL,
   db_unique_name text NOT NULL,
+  inst_id integer,
+  con_id integer,
+  pdb_name text,
   blocking_sid integer,
   blocked_sid integer,
   blocking_sql_id text,
@@ -94,6 +107,8 @@ CREATE TABLE IF NOT EXISTS dpa.blocking_episode (
 CREATE TABLE IF NOT EXISTS dpa.change_event (
   event_time timestamptz NOT NULL,
   db_unique_name text NOT NULL,
+  con_id integer,
+  pdb_name text,
   source text NOT NULL,
   event_type text NOT NULL,
   object_owner text,
@@ -101,12 +116,14 @@ CREATE TABLE IF NOT EXISTS dpa.change_event (
   object_type text,
   details text,
   detected_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (db_unique_name, source, event_type, object_owner, object_name, event_time)
+  UNIQUE (db_unique_name, con_id, source, event_type, object_owner, object_name, event_time)
 );
 
 CREATE TABLE IF NOT EXISTS dpa.object_stats_snapshot (
   sample_time timestamptz NOT NULL,
   db_unique_name text NOT NULL,
+  con_id integer,
+  pdb_name text,
   owner text,
   object_name text,
   object_type text,
@@ -139,6 +156,21 @@ CREATE TABLE IF NOT EXISTS dpa.dpa_advisory (
   impact_score numeric NOT NULL DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS dpa.oracle_ops_snapshot (
+  sample_time timestamptz NOT NULL,
+  db_unique_name text NOT NULL,
+  inst_id integer,
+  con_id integer,
+  pdb_name text,
+  category text NOT NULL,
+  metric_name text NOT NULL,
+  object_owner text,
+  object_name text,
+  status text,
+  value numeric,
+  details text
+);
+
 CREATE INDEX IF NOT EXISTS ix_ash_sample_time ON dpa.ash_sample (sample_time DESC);
 CREATE INDEX IF NOT EXISTS ix_ash_sample_sql_time ON dpa.ash_sample (db_unique_name, sql_id, sample_time DESC);
 CREATE INDEX IF NOT EXISTS ix_ash_sample_wait_time ON dpa.ash_sample (db_unique_name, wait_class, event, sample_time DESC);
@@ -147,10 +179,14 @@ CREATE INDEX IF NOT EXISTS ix_sql_plan_snapshot_sql ON dpa.sql_plan_snapshot (db
 CREATE INDEX IF NOT EXISTS ix_blocking_episode_time ON dpa.blocking_episode (db_unique_name, sample_time DESC);
 CREATE INDEX IF NOT EXISTS ix_change_event_time ON dpa.change_event (db_unique_name, event_time DESC);
 CREATE INDEX IF NOT EXISTS ix_advisory_time ON dpa.dpa_advisory (db_unique_name, advisory_time DESC);
+CREATE INDEX IF NOT EXISTS ix_oracle_ops_time ON dpa.oracle_ops_snapshot (db_unique_name, category, sample_time DESC);
 
 CREATE OR REPLACE VIEW dpa.v_sql_impact_1h AS
 SELECT
   a.db_unique_name,
+  a.inst_id,
+  a.con_id,
+  coalesce(nullif(a.pdb_name, ''), 'UNKNOWN') AS pdb_name,
   coalesce(nullif(a.sql_id, ''), 'UNKNOWN') AS sql_id,
   a.plan_hash_value,
   coalesce(nullif(a.module, ''), 'UNKNOWN') AS module,
@@ -174,11 +210,13 @@ LEFT JOIN dpa.app_slo slo
   ON slo.db_unique_name = a.db_unique_name
  AND lower(slo.app) = lower(coalesce(nullif(a.module, ''), slo.app))
 WHERE a.sample_time >= now() - interval '1 hour'
-GROUP BY a.db_unique_name, a.sql_id, a.plan_hash_value, a.module, a.service_name, a.wait_class, a.event;
+GROUP BY a.db_unique_name, a.inst_id, a.con_id, a.pdb_name, a.sql_id, a.plan_hash_value, a.module, a.service_name, a.wait_class, a.event;
 
 CREATE OR REPLACE VIEW dpa.v_plan_changes_24h AS
 SELECT
   db_unique_name,
+  con_id,
+  coalesce(pdb_name, 'UNKNOWN') AS pdb_name,
   sql_id,
   count(DISTINCT plan_hash_value) AS plan_count,
   min(snapshot_time) AS first_seen,
@@ -187,13 +225,15 @@ SELECT
 FROM dpa.sql_snapshot
 WHERE snapshot_time >= now() - interval '24 hours'
   AND plan_hash_value IS NOT NULL
-GROUP BY db_unique_name, sql_id
+GROUP BY db_unique_name, con_id, coalesce(pdb_name, 'UNKNOWN'), sql_id
 HAVING count(DISTINCT plan_hash_value) > 1;
 
 CREATE OR REPLACE VIEW dpa.v_plan_diff_24h AS
 WITH latest_plan_rows AS (
-  SELECT DISTINCT ON (db_unique_name, sql_id, plan_hash_value, child_number, id)
+  SELECT DISTINCT ON (db_unique_name, con_id, sql_id, plan_hash_value, child_number, id)
     db_unique_name,
+    con_id,
+    coalesce(pdb_name, 'UNKNOWN') AS pdb_name,
     sql_id,
     plan_hash_value,
     child_number,
@@ -208,11 +248,13 @@ WITH latest_plan_rows AS (
     snapshot_time
   FROM dpa.sql_plan_snapshot
   WHERE snapshot_time >= now() - interval '24 hours'
-  ORDER BY db_unique_name, sql_id, plan_hash_value, child_number, id, snapshot_time DESC
+  ORDER BY db_unique_name, con_id, sql_id, plan_hash_value, child_number, id, snapshot_time DESC
 ),
 plan_signatures AS (
   SELECT
     db_unique_name,
+    con_id,
+    pdb_name,
     sql_id,
     plan_hash_value,
     max(snapshot_time) AS last_seen,
@@ -231,22 +273,25 @@ plan_signatures AS (
       ORDER BY id
     ) AS plan_signature
   FROM latest_plan_rows
-  GROUP BY db_unique_name, sql_id, plan_hash_value
+  GROUP BY db_unique_name, con_id, pdb_name, sql_id, plan_hash_value
 )
 SELECT
   ps.*,
-  count(*) OVER (PARTITION BY db_unique_name, sql_id) AS plan_count
+  count(*) OVER (PARTITION BY db_unique_name, con_id, sql_id) AS plan_count
 FROM plan_signatures ps
 WHERE EXISTS (
   SELECT 1
   FROM dpa.v_plan_changes_24h pc
   WHERE pc.db_unique_name = ps.db_unique_name
     AND pc.sql_id = ps.sql_id
+    AND pc.con_id IS NOT DISTINCT FROM ps.con_id
 );
 
 CREATE OR REPLACE VIEW dpa.v_wait_seasonal_baseline AS
 SELECT
   db_unique_name,
+  con_id,
+  coalesce(pdb_name, 'UNKNOWN') AS pdb_name,
   extract(isodow from sample_time)::integer AS iso_dow,
   extract(hour from sample_time)::integer AS hour_of_day,
   coalesce(wait_class, 'UNKNOWN') AS wait_class,
@@ -254,7 +299,51 @@ SELECT
   count(*)::numeric / greatest(count(DISTINCT date_trunc('hour', sample_time)), 1) AS avg_samples_per_hour
 FROM dpa.ash_sample
 WHERE sample_time >= now() - interval '35 days'
-GROUP BY db_unique_name, extract(isodow from sample_time), extract(hour from sample_time), wait_class, event;
+GROUP BY db_unique_name, con_id, coalesce(pdb_name, 'UNKNOWN'), extract(isodow from sample_time), extract(hour from sample_time), wait_class, event;
+
+CREATE OR REPLACE VIEW dpa.v_oracle_ops_latest AS
+SELECT DISTINCT ON (db_unique_name, category, metric_name, object_owner, object_name, con_id)
+  *
+FROM dpa.oracle_ops_snapshot
+ORDER BY db_unique_name, category, metric_name, object_owner, object_name, con_id, sample_time DESC;
+
+CREATE OR REPLACE VIEW dpa.v_repository_table_size AS
+SELECT
+  schemaname,
+  relname AS table_name,
+  pg_total_relation_size(format('%I.%I', schemaname, relname)::regclass) AS total_bytes,
+  pg_size_pretty(pg_total_relation_size(format('%I.%I', schemaname, relname)::regclass)) AS total_size,
+  n_live_tup AS estimated_rows,
+  n_dead_tup AS estimated_dead_rows
+FROM pg_stat_user_tables
+WHERE schemaname = 'dpa'
+ORDER BY pg_total_relation_size(format('%I.%I', schemaname, relname)::regclass) DESC;
+
+CREATE OR REPLACE VIEW dpa.v_repository_ingest_rate AS
+SELECT 'ash_sample' AS table_name, db_unique_name, count(*) AS rows_last_hour, count(*) * 24 AS estimated_rows_per_day
+FROM dpa.ash_sample
+WHERE sample_time >= now() - interval '1 hour'
+GROUP BY db_unique_name
+UNION ALL
+SELECT 'sql_snapshot', db_unique_name, count(*), count(*) * 24
+FROM dpa.sql_snapshot
+WHERE snapshot_time >= now() - interval '1 hour'
+GROUP BY db_unique_name
+UNION ALL
+SELECT 'sql_plan_snapshot', db_unique_name, count(*), count(*) * 24
+FROM dpa.sql_plan_snapshot
+WHERE snapshot_time >= now() - interval '1 hour'
+GROUP BY db_unique_name
+UNION ALL
+SELECT 'blocking_episode', db_unique_name, count(*), count(*) * 24
+FROM dpa.blocking_episode
+WHERE sample_time >= now() - interval '1 hour'
+GROUP BY db_unique_name
+UNION ALL
+SELECT 'oracle_ops_snapshot', db_unique_name, count(*), count(*) * 24
+FROM dpa.oracle_ops_snapshot
+WHERE sample_time >= now() - interval '1 hour'
+GROUP BY db_unique_name;
 
 CREATE OR REPLACE VIEW dpa.v_recent_changes AS
 SELECT *
@@ -278,6 +367,7 @@ BEGIN
   DELETE FROM dpa.sql_plan_snapshot WHERE snapshot_time < now() - make_interval(days => retention_days);
   DELETE FROM dpa.blocking_episode WHERE sample_time < now() - make_interval(days => retention_days);
   DELETE FROM dpa.object_stats_snapshot WHERE sample_time < now() - make_interval(days => retention_days);
+  DELETE FROM dpa.oracle_ops_snapshot WHERE sample_time < now() - make_interval(days => retention_days);
   DELETE FROM dpa.dpa_advisory WHERE advisory_time < now() - make_interval(days => retention_days);
   DELETE FROM dpa.change_event WHERE event_time < now() - make_interval(days => retention_days * 3);
 END;

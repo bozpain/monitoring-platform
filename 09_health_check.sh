@@ -160,7 +160,16 @@ check_service_optional postgresql "$BASE_DIR/dpa/conf/dpa_sampler.env" "DISABLE_
 
 check_service_optional oracle_exporter "$BASE_DIR/exporters/oracle/oracle_exporter.env" "CHANGE_ME"
 check_service_optional mssql_exporter "$BASE_DIR/exporters/mssql/mssql_exporter.env" "CHANGE_ME"
-check_service_optional dpa_sampler.timer "$BASE_DIR/dpa/conf/dpa_sampler.env" "CHANGE_ME"
+
+if systemctl list-unit-files 'dpa_sampler@*.timer' >/dev/null 2>&1; then
+  if systemctl list-timers 'dpa_sampler@*.timer' --no-pager 2>/dev/null | grep -q 'dpa_sampler@'; then
+    mark_ok "At least one templated DPA sampler timer is registered"
+  else
+    mark_warn "No templated DPA sampler timers are active yet"
+  fi
+else
+  check_service_optional dpa_sampler.timer "$BASE_DIR/dpa/conf/dpa_sampler.env" "CHANGE_ME"
+fi
 
 echo ""
 echo "[INFO] Checking required ports..."

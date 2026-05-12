@@ -92,7 +92,7 @@ Alur singkat:
 | `config/*/*.env.example` | Template runtime tuning per service |
 | `grafana/provisioning/` | Datasource dan dashboard provisioning |
 | `grafana/dashboards/` | Dashboard JSON untuk fleet, node, Oracle, dan MSSQL |
-| `scripts/dpa_sampler.py` | Mini-ASH, SQL snapshot, plan snapshot, blocking, advisory sampler |
+| `scripts/dpa_sampler.py` | Multi-target mini-ASH, SQL snapshot, plan snapshot, blocking, ops signal, advisory sampler |
 | `systemd/` | Unit service yang diinstall ke server |
 | `docs/images/` | Diagram arsitektur dan aset dokumentasi |
 

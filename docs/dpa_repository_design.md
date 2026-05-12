@@ -35,8 +35,8 @@ The script installs or initializes PostgreSQL, creates:
 | `dpa_app` | Write user for the sampler |
 | `dpa_reader` | Read user for Grafana |
 | `/monitoring/dpa/conf/dpa_sampler.env` | Oracle and PostgreSQL sampler configuration |
-| `dpa_sampler.service` | One-shot sampler service |
-| `dpa_sampler.timer` | Runs sampler every 60 seconds |
+| `dpa_sampler@.service` | One-shot sampler service template per Oracle target |
+| `dpa_sampler@.timer` | Runs each target sampler every 60 seconds |
 
 If the VM is offline, put PostgreSQL RPMs in:
 
@@ -78,12 +78,33 @@ GRANT SELECT ON dba_objects TO monitoring_user;
 
 If security policy does not allow `SELECT_CATALOG_ROLE`, grant only the listed views. Optional sampler modules fail soft for object stats, plan snapshots, and change events when privileges are missing.
 
-## Sampler Configuration
+Least-privilege split:
 
-Edit:
+| Module | Required grants |
+| --- | --- |
+| Core mini-ASH | `v_$database`, `gv_$instance`, `gv_$session`, `gv_$sql`, `v_$containers` |
+| SQL text and counters | `gv_$sql` |
+| Plan history | `gv_$sql_plan`, `gv_$sql` |
+| Blocking history | `gv_$session`, `gv_$sql`, `v_$containers` |
+| Change correlation | `dba_objects` |
+| Hot objects | `v_$segment_statistics` |
+| Operational signals | `v_$rman_backup_job_details`, `v_$dataguard_stats`, `dba_indexes`, `dba_tab_statistics`, `dba_scheduler_job_run_details`, `dba_objects` |
+
+Disable optional modules when grants are not approved:
 
 ```bash
-vi /monitoring/dpa/conf/dpa_sampler.env
+DPA_ENABLE_PLAN_SNAPSHOT=false
+DPA_ENABLE_OBJECT_STATS=false
+DPA_ENABLE_CHANGE_EVENTS=false
+DPA_ENABLE_ORACLE_OPS=false
+```
+
+## Sampler Configuration
+
+Edit the default target env:
+
+```bash
+vi /monitoring/dpa/conf/oracle-default.env
 ```
 
 Minimum required values:
@@ -98,27 +119,44 @@ DPA_DB_UNIQUE_NAME=oracle-prod-01
 Then start:
 
 ```bash
-systemctl restart dpa_sampler.timer
-systemctl start dpa_sampler.service
-journalctl -u dpa_sampler.service -n 100 --no-pager
+systemctl restart dpa_sampler@oracle-default.timer
+systemctl start dpa_sampler@oracle-default.service
+journalctl -u dpa_sampler@oracle-default.service -n 100 --no-pager
+```
+
+For multiple Oracle targets, create one env file and one timer instance per database:
+
+```bash
+cp /monitoring/dpa/conf/oracle-default.env /monitoring/dpa/conf/oracle-prod-02.env
+vi /monitoring/dpa/conf/oracle-prod-02.env
+systemctl enable --now dpa_sampler@oracle-prod-02.timer
+```
+
+Each env must use a unique:
+
+```bash
+DPA_DB_UNIQUE_NAME=oracle-prod-02
 ```
 
 ## Repository Tables
 
 | Table or view | Purpose |
 | --- | --- |
-| `dpa.ash_sample` | Mini-ASH active session samples |
-| `dpa.sql_snapshot` | Top SQL counters and SQL text snapshots |
-| `dpa.sql_plan_snapshot` | Execution plan rows for top SQL |
-| `dpa.blocking_episode` | Blocking history with blocker/victim SQL ID |
+| `dpa.ash_sample` | Mini-ASH active session samples with `inst_id`, `con_id`, and `pdb_name` |
+| `dpa.sql_snapshot` | Top SQL counters and SQL text snapshots with RAC/PDB context |
+| `dpa.sql_plan_snapshot` | Execution plan rows for top SQL with RAC/PDB context |
+| `dpa.blocking_episode` | Blocking history with blocker/victim SQL ID and RAC/PDB context |
 | `dpa.change_event` | DDL/object change correlation |
 | `dpa.object_stats_snapshot` | Hot segment/object signals |
+| `dpa.oracle_ops_snapshot` | Data Guard, RMAN, scheduler, invalid object, stale stats, unusable index signals |
 | `dpa.app_slo` | Application SLO and business weighting |
 | `dpa.dpa_advisory` | Generated tuning/advisory queue |
 | `dpa.v_sql_impact_1h` | Impact score by SQL/wait/module/service |
 | `dpa.v_plan_changes_24h` | SQL IDs with multiple plan hashes |
 | `dpa.v_plan_diff_24h` | Text signatures for comparing changed plan operations |
 | `dpa.v_wait_seasonal_baseline` | Day/hour wait baseline |
+| `dpa.v_repository_table_size` | Repository table size and estimated rows |
+| `dpa.v_repository_ingest_rate` | Recent ingest rate by table and database |
 
 ## Retention
 
@@ -135,6 +173,39 @@ SELECT dpa.purge_old_data(35);
 ```
 
 Increase retention only after sizing PostgreSQL disk usage.
+
+Starter sizing rule of thumb:
+
+| Workload | Suggested starter disk for DPA repository |
+| --- | --- |
+| 1-3 Oracle DBs, light activity | 20-50 GB |
+| 3-10 Oracle DBs, moderate activity | 100-250 GB |
+| 10+ Oracle DBs or high active sessions | Start 500 GB and review after 7 days |
+
+Use the dashboard panel **Repository Size and Ingest Rate** or query:
+
+```sql
+SELECT * FROM dpa.v_repository_table_size;
+SELECT * FROM dpa.v_repository_ingest_rate;
+```
+
+If `ash_sample`, `sql_snapshot`, or `sql_plan_snapshot` grows too fast, reduce:
+
+```bash
+DPA_RETENTION_DAYS
+DPA_SQL_TOP_N
+DPA_PLAN_TOP_N
+```
+
+For very large deployments, convert the high-volume tables to daily partitions before production cutover:
+
+```text
+dpa.ash_sample
+dpa.sql_snapshot
+dpa.sql_plan_snapshot
+dpa.blocking_episode
+dpa.oracle_ops_snapshot
+```
 
 ## SLO and Impact Weighting
 
@@ -182,6 +253,7 @@ Use it for:
 - execution plan rows
 - recent DDL/change correlation
 - hot object signals
+- Oracle operational signals: Data Guard lag, RMAN backup age, failed scheduler jobs, invalid objects, stale stats, unusable indexes
 - seasonal wait baseline
 - application SLO weights
 
@@ -189,9 +261,9 @@ Use it for:
 
 ```bash
 systemctl status postgresql --no-pager
-systemctl list-timers dpa_sampler.timer --no-pager
-systemctl start dpa_sampler.service
-journalctl -u dpa_sampler.service -n 100 --no-pager
+systemctl list-timers 'dpa_sampler@*.timer' --no-pager
+systemctl start dpa_sampler@oracle-default.service
+journalctl -u dpa_sampler@oracle-default.service -n 100 --no-pager
 runuser -u postgres -- psql -d dpa_repository -c "SELECT count(*) FROM dpa.ash_sample;"
 ```
 
