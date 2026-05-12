@@ -81,9 +81,30 @@ Advisory alerts approximate tuning guidance:
 | Sessions | `mssql_active_sessions`, `mssql_sleeping_sessions`, `mssql_session_info` | Session load and detail |
 | Blocking | `mssql_blocked_sessions`, `mssql_blocking_session_info`, `mssql_lock_waits_total`, `mssql_deadlocks_total` | Root blocker and lock impact |
 | Top SQL | `mssql_query_cpu_time_ms`, `mssql_query_duration_ms`, `mssql_query_logical_reads`, `mssql_query_execution_count` | Expensive cached queries |
+| Query workload rate | `mssql_query_workload_delta_*`, `mssql:query_*:rate5m` | Recent CPU, elapsed time, executions, reads, writes, and rows by query hash/plan hash |
+| Active wait attribution | `mssql_active_wait_sql`, `mssql:active_sessions_by_query_wait` | Tie active waits to query hash, login, host, and application |
+| Plan stability | `mssql_query_plan_count`, `mssql:query_plan_count`, `MSSQLPlanChangeRegression` | Detect query hashes with multiple cached plans and possible regression |
 | I/O | `mssql_io_reads_total`, `mssql_io_writes_total`, latency counters | Database file latency and IOPS |
 | Memory/cache | `mssql_buffer_cache_hit_ratio`, `mssql_page_life_expectancy_seconds`, `mssql_memory_grants_pending` | Cache and memory pressure |
 | Capacity | `mssql_database_size_bytes`, data/log usage, file size, TempDB usage | Storage and TempDB pressure |
+
+### MSSQL DPA Enhancements
+
+The MSSQL layer now mirrors the Oracle split between bounded Prometheus metrics and deeper repository diagnostics:
+
+| Layer | Where | Purpose |
+| --- | --- | --- |
+| Prometheus metrics | `mssql_query_workload_delta_*`, `mssql_active_wait_sql`, `mssql_query_plan_count` | Recent SQL workload, wait-to-query attribution, and plan-count signal without SQL text labels |
+| Recording rules | `mssql:query_*:rate5m`, `mssql:active_sessions_by_query_wait`, `mssql:query_plan_count` | Stable dashboard and alert inputs |
+| DPA repository | `dpa.mssql_request_sample`, `dpa.mssql_query_snapshot`, `dpa.mssql_plan_snapshot`, `dpa.mssql_advisory` | Local PostgreSQL diagnostics for SQL text, plan XML, blocking episodes, ops signals, and advisory queue |
+
+Advisory alerts approximate DPA-style investigation:
+
+| Alert | Signal | Suggested investigation |
+| --- | --- | --- |
+| `MSSQLWaitTimeAnomaly` | Wait rate exceeds the 7-day baseline | Check wait type, query hash, blocking, and host pressure |
+| `MSSQLPlanChangeRegression` | Multiple plan hashes plus elapsed-time regression | Compare plan XML and check statistics, parameter sensitivity, and deployments |
+| `MSSQLInefficientLogicalIO` | High logical reads per execution | Tune predicates, indexes, joins, and stale stats |
 
 ## SolarWinds DPA Alignment
 
@@ -110,6 +131,10 @@ For data that is too detailed or too high-cardinality for Prometheus, the platfo
 | Change correlation | `dpa.change_event`, `dpa.v_recent_changes` | Correlate DDL/object changes with performance shifts |
 | Table/index advisor inputs | `dpa.object_stats_snapshot` | Identify hot objects and contention-prone segments |
 | Oracle operational coverage | `dpa.oracle_ops_snapshot`, `dpa.v_oracle_ops_latest` | Track Data Guard lag, RMAN backup age, failed scheduler jobs, invalid objects, stale stats, and unusable indexes |
+| MSSQL request samples | `dpa.mssql_request_sample`, `dpa.v_mssql_query_impact_1h` | Reconstruct active SQL Server requests, waits, blockers, and query impact |
+| MSSQL SQL and plan history | `dpa.mssql_query_snapshot`, `dpa.mssql_plan_snapshot`, `dpa.v_mssql_plan_changes_24h` | Store SQL text and plan XML outside Prometheus labels |
+| MSSQL operational coverage | `dpa.mssql_ops_snapshot`, `dpa.v_mssql_ops_latest` | Track database state, backup age, and SQL Agent failures |
+| MSSQL advisory queue | `dpa.mssql_advisory`, `dpa.v_mssql_advisory_queue` | Show wait, plan, and logical-I/O recommendations in Grafana |
 | RAC/CDB/PDB context | `inst_id`, `con_id`, `pdb_name` columns | Split DPA analysis by RAC instance and PDB |
 | Impact scoring | `dpa.v_sql_impact_1h`, `dpa.app_slo` | Prioritize SQL by active time and business weight |
 | Runbook/advisory queue | `dpa.dpa_advisory`, `dpa.v_advisory_queue` | Show diagnosis hints and suggested next actions in Grafana |

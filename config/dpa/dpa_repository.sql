@@ -380,3 +380,189 @@ GRANT SELECT ON ALL TABLES IN SCHEMA dpa TO dpa_app;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA dpa TO dpa_app;
 ALTER DEFAULT PRIVILEGES IN SCHEMA dpa GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO dpa_app;
 ALTER DEFAULT PRIVILEGES IN SCHEMA dpa GRANT SELECT ON TABLES TO dpa_reader;
+
+-- MSSQL DPA repository objects.
+
+CREATE TABLE IF NOT EXISTS dpa.mssql_instance (
+  instance_name text PRIMARY KEY,
+  server_name text,
+  product_version text,
+  product_level text,
+  edition text,
+  first_seen timestamptz NOT NULL DEFAULT now(),
+  last_seen timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS dpa.mssql_request_sample (
+  sample_time timestamptz NOT NULL,
+  instance_name text NOT NULL,
+  database_name text,
+  session_id integer,
+  request_id integer,
+  status text,
+  command text,
+  wait_type text,
+  wait_time_ms numeric,
+  wait_resource text,
+  blocking_session_id integer,
+  cpu_time_ms numeric,
+  elapsed_time_ms numeric,
+  logical_reads numeric,
+  reads numeric,
+  writes numeric,
+  query_hash text,
+  query_plan_hash text,
+  login_name text,
+  host_name text,
+  program_name text,
+  sample_seconds numeric NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS dpa.mssql_query_snapshot (
+  snapshot_time timestamptz NOT NULL,
+  instance_name text NOT NULL,
+  database_name text,
+  query_hash text,
+  query_plan_hash text,
+  plan_handle text,
+  sql_handle text,
+  statement_context text,
+  execution_count numeric,
+  total_worker_time_us numeric,
+  total_elapsed_time_us numeric,
+  total_logical_reads numeric,
+  total_physical_reads numeric,
+  total_logical_writes numeric,
+  total_rows numeric,
+  last_execution_time timestamptz,
+  query_text text
+);
+
+CREATE TABLE IF NOT EXISTS dpa.mssql_plan_snapshot (
+  snapshot_time timestamptz NOT NULL,
+  instance_name text NOT NULL,
+  database_name text,
+  query_hash text,
+  query_plan_hash text,
+  plan_handle text,
+  query_plan text
+);
+
+CREATE TABLE IF NOT EXISTS dpa.mssql_blocking_episode (
+  sample_time timestamptz NOT NULL,
+  instance_name text NOT NULL,
+  database_name text,
+  blocked_session_id integer,
+  blocking_session_id integer,
+  wait_type text,
+  wait_time_ms numeric,
+  wait_resource text,
+  blocked_query_hash text,
+  blocking_query_hash text,
+  login_name text,
+  host_name text,
+  program_name text
+);
+
+CREATE TABLE IF NOT EXISTS dpa.mssql_ops_snapshot (
+  sample_time timestamptz NOT NULL,
+  instance_name text NOT NULL,
+  database_name text,
+  category text NOT NULL,
+  metric_name text NOT NULL,
+  object_name text,
+  status text,
+  value numeric,
+  details text
+);
+
+CREATE TABLE IF NOT EXISTS dpa.mssql_advisory (
+  advisory_time timestamptz NOT NULL DEFAULT now(),
+  instance_name text NOT NULL,
+  severity text NOT NULL,
+  category text NOT NULL,
+  database_name text,
+  query_hash text,
+  query_plan_hash text,
+  signal text NOT NULL,
+  recommendation text NOT NULL,
+  impact_score numeric NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS ix_mssql_request_sample_time ON dpa.mssql_request_sample (instance_name, sample_time DESC);
+CREATE INDEX IF NOT EXISTS ix_mssql_request_sample_query ON dpa.mssql_request_sample (instance_name, query_hash, sample_time DESC);
+CREATE INDEX IF NOT EXISTS ix_mssql_query_snapshot_query ON dpa.mssql_query_snapshot (instance_name, database_name, query_hash, snapshot_time DESC);
+CREATE INDEX IF NOT EXISTS ix_mssql_plan_snapshot_query ON dpa.mssql_plan_snapshot (instance_name, database_name, query_hash, query_plan_hash, snapshot_time DESC);
+CREATE INDEX IF NOT EXISTS ix_mssql_blocking_time ON dpa.mssql_blocking_episode (instance_name, sample_time DESC);
+CREATE INDEX IF NOT EXISTS ix_mssql_ops_time ON dpa.mssql_ops_snapshot (instance_name, category, sample_time DESC);
+CREATE INDEX IF NOT EXISTS ix_mssql_advisory_time ON dpa.mssql_advisory (instance_name, advisory_time DESC);
+
+CREATE OR REPLACE VIEW dpa.v_mssql_query_impact_1h AS
+SELECT
+  r.instance_name,
+  coalesce(r.database_name, 'UNKNOWN') AS database_name,
+  coalesce(r.query_hash, 'UNKNOWN') AS query_hash,
+  coalesce(r.query_plan_hash, 'UNKNOWN') AS query_plan_hash,
+  coalesce(r.wait_type, 'CPU/RUNNING') AS wait_type,
+  coalesce(r.program_name, 'UNKNOWN') AS program_name,
+  count(*) AS samples,
+  sum(r.sample_seconds) AS active_seconds,
+  max(q.query_text) AS sample_query_text,
+  round(sum(r.sample_seconds), 2) AS impact_score
+FROM dpa.mssql_request_sample r
+LEFT JOIN LATERAL (
+  SELECT qs.query_text
+  FROM dpa.mssql_query_snapshot qs
+  WHERE qs.instance_name = r.instance_name
+    AND qs.query_hash = r.query_hash
+  ORDER BY qs.snapshot_time DESC
+  LIMIT 1
+) q ON true
+WHERE r.sample_time >= now() - interval '1 hour'
+GROUP BY r.instance_name, r.database_name, r.query_hash, r.query_plan_hash, r.wait_type, r.program_name;
+
+CREATE OR REPLACE VIEW dpa.v_mssql_plan_changes_24h AS
+SELECT
+  instance_name,
+  database_name,
+  query_hash,
+  count(DISTINCT query_plan_hash) AS plan_count,
+  min(snapshot_time) AS first_seen,
+  max(snapshot_time) AS last_seen,
+  string_agg(DISTINCT query_plan_hash, ', ' ORDER BY query_plan_hash) AS query_plan_hashes
+FROM dpa.mssql_query_snapshot
+WHERE snapshot_time >= now() - interval '24 hours'
+  AND query_hash IS NOT NULL
+  AND query_plan_hash IS NOT NULL
+GROUP BY instance_name, database_name, query_hash
+HAVING count(DISTINCT query_plan_hash) > 1;
+
+CREATE OR REPLACE VIEW dpa.v_mssql_ops_latest AS
+SELECT DISTINCT ON (instance_name, database_name, category, metric_name, object_name)
+  *
+FROM dpa.mssql_ops_snapshot
+ORDER BY instance_name, database_name, category, metric_name, object_name, sample_time DESC;
+
+CREATE OR REPLACE VIEW dpa.v_mssql_advisory_queue AS
+SELECT *
+FROM dpa.mssql_advisory
+WHERE advisory_time >= now() - interval '24 hours'
+ORDER BY impact_score DESC, advisory_time DESC;
+
+CREATE OR REPLACE FUNCTION dpa.purge_old_mssql_data(retention_days integer DEFAULT 35)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  DELETE FROM dpa.mssql_request_sample WHERE sample_time < now() - make_interval(days => retention_days);
+  DELETE FROM dpa.mssql_query_snapshot WHERE snapshot_time < now() - make_interval(days => retention_days);
+  DELETE FROM dpa.mssql_plan_snapshot WHERE snapshot_time < now() - make_interval(days => retention_days);
+  DELETE FROM dpa.mssql_blocking_episode WHERE sample_time < now() - make_interval(days => retention_days);
+  DELETE FROM dpa.mssql_ops_snapshot WHERE sample_time < now() - make_interval(days => retention_days);
+  DELETE FROM dpa.mssql_advisory WHERE advisory_time < now() - make_interval(days => retention_days);
+END;
+$$;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA dpa TO dpa_app;
+GRANT SELECT ON ALL TABLES IN SCHEMA dpa TO dpa_reader;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA dpa TO dpa_app;

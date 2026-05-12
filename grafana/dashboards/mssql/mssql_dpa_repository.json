@@ -1,0 +1,216 @@
+{
+  "title": "07 - MSSQL DPA Repository",
+  "uid": "mssql-dpa-repository",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "tags": ["mssql", "dpa", "postgres", "repository"],
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [
+    {
+      "title": "MSSQL Runbooks",
+      "type": "link",
+      "url": "docs/runbooks/mssql/README.md"
+    },
+    {
+      "title": "MSSQL Monitoring Tiers",
+      "type": "link",
+      "url": "docs/mssql_monitoring_tiers.md"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "instance_name",
+        "type": "query",
+        "datasource": { "type": "postgres", "uid": "DPARepository" },
+        "query": "SELECT instance_name FROM dpa.mssql_instance ORDER BY 1",
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "query_hash",
+        "type": "query",
+        "datasource": { "type": "postgres", "uid": "DPARepository" },
+        "query": "SELECT DISTINCT query_hash FROM dpa.v_mssql_query_impact_1h WHERE instance_name = '$instance_name' AND query_hash IS NOT NULL ORDER BY 1",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": false
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Request Samples Last Hour",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*)::numeric AS samples FROM dpa.mssql_request_sample WHERE instance_name = '$instance_name' AND sample_time >= now() - interval '1 hour'"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Advisories 24h",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*)::numeric AS advisories FROM dpa.mssql_advisory WHERE instance_name = '$instance_name' AND advisory_time >= now() - interval '24 hours'"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Plan Changes 24h",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*)::numeric AS plan_changes FROM dpa.v_mssql_plan_changes_24h WHERE instance_name = '$instance_name'"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Blocking Episodes 6h",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*)::numeric AS blocking_episodes FROM dpa.mssql_blocking_episode WHERE instance_name = '$instance_name' AND sample_time >= now() - interval '6 hours'"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Query Impact Last Hour",
+      "gridPos": { "x": 0, "y": 4, "w": 24, "h": 9 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT database_name, query_hash, query_plan_hash, wait_type, program_name, samples, active_seconds, impact_score, left(sample_query_text, 400) AS query_text_sample FROM dpa.v_mssql_query_impact_1h WHERE instance_name = '$instance_name' AND ('$query_hash' = 'All' OR query_hash = '$query_hash') ORDER BY impact_score DESC LIMIT 50"
+        }
+      ],
+      "options": { "showHeader": true, "sortBy": [{ "displayName": "impact_score", "desc": true }] }
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Advisory Queue",
+      "gridPos": { "x": 0, "y": 13, "w": 12, "h": 9 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT advisory_time, severity, category, database_name, query_hash, query_plan_hash, signal, recommendation, impact_score FROM dpa.v_mssql_advisory_queue WHERE instance_name = '$instance_name' AND ('$query_hash' = 'All' OR query_hash = '$query_hash') ORDER BY impact_score DESC, advisory_time DESC LIMIT 50"
+        }
+      ],
+      "options": { "showHeader": true }
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Plan Change Candidates",
+      "gridPos": { "x": 12, "y": 13, "w": 12, "h": 9 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT database_name, query_hash, plan_count, first_seen, last_seen, query_plan_hashes FROM dpa.v_mssql_plan_changes_24h WHERE instance_name = '$instance_name' AND ('$query_hash' = 'All' OR query_hash = '$query_hash') ORDER BY last_seen DESC LIMIT 50"
+        }
+      ],
+      "options": { "showHeader": true }
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "SQL Text Snapshots",
+      "gridPos": { "x": 0, "y": 22, "w": 24, "h": 9 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT snapshot_time, database_name, query_hash, query_plan_hash, statement_context, execution_count, total_worker_time_us, total_elapsed_time_us, total_logical_reads, total_physical_reads, total_logical_writes, total_rows, last_execution_time, left(query_text, 1200) AS query_text FROM dpa.mssql_query_snapshot WHERE instance_name = '$instance_name' AND ('$query_hash' = 'All' OR query_hash = '$query_hash') ORDER BY snapshot_time DESC, total_elapsed_time_us DESC LIMIT 50"
+        }
+      ],
+      "options": { "showHeader": true }
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Plan XML Snapshots",
+      "gridPos": { "x": 0, "y": 31, "w": 24, "h": 9 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT snapshot_time, database_name, query_hash, query_plan_hash, plan_handle, left(query_plan, 2000) AS query_plan_xml FROM dpa.mssql_plan_snapshot WHERE instance_name = '$instance_name' AND ('$query_hash' = 'All' OR query_hash = '$query_hash') ORDER BY snapshot_time DESC LIMIT 50"
+        }
+      ],
+      "options": { "showHeader": true }
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Blocking History",
+      "gridPos": { "x": 0, "y": 40, "w": 24, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT sample_time, database_name, blocked_session_id, blocking_session_id, wait_type, wait_time_ms, wait_resource, blocked_query_hash, blocking_query_hash, login_name, host_name, program_name FROM dpa.mssql_blocking_episode WHERE instance_name = '$instance_name' ORDER BY sample_time DESC LIMIT 100"
+        }
+      ],
+      "options": { "showHeader": true }
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Operational Signals",
+      "gridPos": { "x": 0, "y": 48, "w": 24, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT sample_time, database_name, category, metric_name, object_name, status, value, details FROM dpa.v_mssql_ops_latest WHERE instance_name = '$instance_name' ORDER BY category, metric_name, value DESC NULLS LAST LIMIT 200"
+        }
+      ],
+      "options": { "showHeader": true }
+    }
+  ]
+}

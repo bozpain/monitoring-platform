@@ -34,7 +34,7 @@ Semua instruksi teknis deployment, tuning, credential exporter, firewall, valida
 | Metrics collection | Node exporter, Oracle exporter, MSSQL exporter | Metrik server dan database dikumpulkan dari target internal |
 | Scrape and rules | Prometheus | Service discovery, scrape, recording rules, alert rules |
 | Long retention | VictoriaMetrics | Penyimpanan metrik jangka panjang dengan endpoint Prometheus-compatible |
-| DPA repository | PostgreSQL local, DPA sampler | Mini-ASH, SQL text, plan history, advisory, dan change correlation |
+| DPA repository | PostgreSQL local, Oracle DPA sampler, MSSQL DPA sampler | Mini-ASH/request samples, SQL text, plan history, advisory, dan change correlation |
 | Visualization | Grafana | Dashboard fleet, node, Oracle, dan MSSQL |
 | Notification | Alertmanager | Routing alert, grouping, repeat interval, dan email notification |
 | Automation | Shell installer, inventory generator, systemd units | Deployment repeatable dari repository root |
@@ -76,6 +76,8 @@ Alur singkat:
 | [Oracle DPA Repository](docs/dpa_repository_design.md) | PostgreSQL repository, sampler, SQL drilldown, plan history, advisory, dan SLO weighting |
 | [Oracle Monitoring Tiers](docs/oracle_monitoring_tiers.md) | Decision matrix exporter-only vs exporter + DPA Repository |
 | [Oracle Runbooks](docs/runbooks/oracle) | Panduan tindakan untuk alert/advisory Oracle utama |
+| [MSSQL Monitoring Tiers](docs/mssql_monitoring_tiers.md) | Decision matrix exporter-only vs exporter + DPA Repository untuk SQL Server |
+| [MSSQL Runbooks](docs/runbooks/mssql) | Panduan tindakan untuk blocking, waits, plan regression, I/O, memory, dan query SQL Server |
 | [Alert Catalog](docs/alert_catalog.md) | Threshold default dan arti operasional alert |
 | [Offline Manifest Template](docs/offline_package_manifest.example.csv) | Template versi package dan checksum yang disetujui |
 
@@ -88,6 +90,7 @@ Alur singkat:
 | `inventory/targets.csv` | Source inventory host yang dimonitor |
 | `scripts/generate_targets.py` | Generator target Prometheus `file_sd` |
 | `scripts/install_dpa_target.sh` | Helper onboarding target Oracle DPA dari template inventory |
+| `scripts/install_mssql_dpa_target.sh` | Helper onboarding target MSSQL DPA dari template inventory |
 | `config/prometheus.yml` | Scrape config, alerting, dan remote write |
 | `config/alerts/` | Recording rules dan alert rules |
 | `config/dpa/` | PostgreSQL DPA schema, sampler env, dan Python requirements |
@@ -95,7 +98,8 @@ Alur singkat:
 | `config/*/*.env.example` | Template runtime tuning per service |
 | `grafana/provisioning/` | Datasource dan dashboard provisioning |
 | `grafana/dashboards/` | Dashboard JSON untuk fleet, node, Oracle, dan MSSQL |
-| `scripts/dpa_sampler.py` | Multi-target mini-ASH, SQL snapshot, plan snapshot, blocking, ops signal, advisory sampler |
+| `scripts/dpa_sampler.py` | Oracle mini-ASH, SQL snapshot, plan snapshot, blocking, ops signal, advisory sampler |
+| `scripts/mssql_dpa_sampler.py` | MSSQL request sample, SQL snapshot, plan XML, blocking, ops signal, advisory sampler |
 | `systemd/` | Unit service yang diinstall ke server |
 | `docs/images/` | Diagram arsitektur dan aset dokumentasi |
 
@@ -106,7 +110,7 @@ Alur singkat:
 | Fleet | Overview platform dan health target |
 | Node | CPU, memory, filesystem, IO, network, dan capacity |
 | Oracle | Overview, tablespace, SQL activity, blocking, RAC, ASM, performance |
-| MSSQL | Overview, capacity, sessions, blocking, dan performance |
+| MSSQL | Overview, capacity, sessions, blocking, performance, dan DPA repository drilldown |
 
 ## Deployment
 

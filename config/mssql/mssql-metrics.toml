@@ -731,3 +731,78 @@ CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) st
 WHERE qs.query_hash IS NOT NULL
 ORDER BY qs.execution_count DESC
 """
+
+[[metric]]
+context = "mssql_query_workload_delta"
+labels = ["database", "query_hash", "query_plan_hash", "statement_context"]
+metricsdesc = { cpu_time_us = "Cumulative SQL Server worker time in microseconds", elapsed_time_us = "Cumulative SQL Server elapsed time in microseconds", executions = "Cumulative executions", logical_reads = "Cumulative logical reads", physical_reads = "Cumulative physical reads", logical_writes = "Cumulative logical writes", rows = "Cumulative returned rows" }
+request = """
+SELECT TOP 50
+  ISNULL(DB_NAME(st.dbid), 'UNKNOWN') AS database,
+  CONVERT(varchar(64), qs.query_hash, 1) AS query_hash,
+  CONVERT(varchar(64), qs.query_plan_hash, 1) AS query_plan_hash,
+  SUBSTRING(ISNULL(OBJECT_SCHEMA_NAME(st.objectid, st.dbid) + '.' + OBJECT_NAME(st.objectid, st.dbid), 'adhoc'), 1, 120) AS statement_context,
+  SUM(qs.total_worker_time) AS cpu_time_us,
+  SUM(qs.total_elapsed_time) AS elapsed_time_us,
+  SUM(qs.execution_count) AS executions,
+  SUM(qs.total_logical_reads) AS logical_reads,
+  SUM(qs.total_physical_reads) AS physical_reads,
+  SUM(qs.total_logical_writes) AS logical_writes,
+  SUM(qs.total_rows) AS rows
+FROM sys.dm_exec_query_stats qs
+CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) st
+WHERE qs.query_hash IS NOT NULL
+GROUP BY ISNULL(DB_NAME(st.dbid), 'UNKNOWN'),
+         CONVERT(varchar(64), qs.query_hash, 1),
+         CONVERT(varchar(64), qs.query_plan_hash, 1),
+         SUBSTRING(ISNULL(OBJECT_SCHEMA_NAME(st.objectid, st.dbid) + '.' + OBJECT_NAME(st.objectid, st.dbid), 'adhoc'), 1, 120)
+ORDER BY SUM(qs.total_elapsed_time) DESC
+"""
+
+[[metric]]
+context = "mssql_active_wait_sql"
+labels = ["database", "query_hash", "wait_type", "login_name", "host_name", "program_name"]
+metricsdesc = { value = "Active requests attributed to query hash and wait type" }
+request = """
+SELECT TOP 100
+  ISNULL(DB_NAME(r.database_id), 'UNKNOWN') AS database,
+  ISNULL(CONVERT(varchar(64), qs.query_hash, 1), 'UNKNOWN') AS query_hash,
+  ISNULL(r.wait_type, 'CPU/RUNNING') AS wait_type,
+  ISNULL(s.login_name, 'UNKNOWN') AS login_name,
+  ISNULL(s.host_name, 'UNKNOWN') AS host_name,
+  SUBSTRING(ISNULL(s.program_name, 'UNKNOWN'), 1, 120) AS program_name,
+  COUNT(*) AS value
+FROM sys.dm_exec_requests r
+JOIN sys.dm_exec_sessions s ON r.session_id = s.session_id
+OUTER APPLY (
+  SELECT TOP 1 query_hash
+  FROM sys.dm_exec_query_stats qs
+  WHERE qs.sql_handle = r.sql_handle
+  ORDER BY qs.last_execution_time DESC
+) qs
+WHERE r.session_id > 50
+GROUP BY ISNULL(DB_NAME(r.database_id), 'UNKNOWN'),
+         ISNULL(CONVERT(varchar(64), qs.query_hash, 1), 'UNKNOWN'),
+         ISNULL(r.wait_type, 'CPU/RUNNING'),
+         ISNULL(s.login_name, 'UNKNOWN'),
+         ISNULL(s.host_name, 'UNKNOWN'),
+         SUBSTRING(ISNULL(s.program_name, 'UNKNOWN'), 1, 120)
+ORDER BY COUNT(*) DESC
+"""
+
+[[metric]]
+context = "mssql_query_plan_count"
+labels = ["database", "query_hash"]
+metricsdesc = { value = "Number of cached query plan hashes per query hash" }
+request = """
+SELECT TOP 50
+  ISNULL(DB_NAME(st.dbid), 'UNKNOWN') AS database,
+  CONVERT(varchar(64), qs.query_hash, 1) AS query_hash,
+  COUNT(DISTINCT qs.query_plan_hash) AS value
+FROM sys.dm_exec_query_stats qs
+CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) st
+WHERE qs.query_hash IS NOT NULL
+GROUP BY ISNULL(DB_NAME(st.dbid), 'UNKNOWN'), CONVERT(varchar(64), qs.query_hash, 1)
+HAVING COUNT(DISTINCT qs.query_plan_hash) > 1
+ORDER BY COUNT(DISTINCT qs.query_plan_hash) DESC
+"""

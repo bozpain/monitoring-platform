@@ -43,7 +43,7 @@ Single VM deployment memasang komponen berikut:
 | Oracle exporter | Oracle DB metrics | `9161` |
 | MSSQL exporter | SQL Server metrics | `9182` |
 | PostgreSQL DPA Repository | Historical SQL/plan/mini-ASH drilldown | `5432` local |
-| DPA sampler | Oracle diagnostic sampler via systemd timer | n/a |
+| DPA sampler | Oracle dan MSSQL diagnostic sampler via systemd timer | n/a |
 | Grafana | Dashboard dan visualisasi | `3000` |
 
 Data flow:
@@ -54,7 +54,7 @@ Node/Oracle/MSSQL exporters -> Prometheus -> VictoriaMetrics -> Grafana
                                       v
                                 Alertmanager
 
-Oracle target DB -> DPA sampler -> PostgreSQL DPA Repository -> Grafana
+Oracle/MSSQL target DB -> DPA sampler -> PostgreSQL DPA Repository -> Grafana
 ```
 
 Untuk ekspansi 3 VM, gunakan [deployment_guide_expand.md](deployment_guide_expand.md). Untuk handover operasional tambahan, gunakan [operator_handover.md](operator_handover.md).
@@ -100,7 +100,7 @@ Expected file patterns:
 | MSSQL exporter | `mssql_exporter*.tar.gz` | `/monitoring/sources/tar` |
 | Grafana | `grafana-*.rpm` | `/monitoring/sources/rpm` |
 | PostgreSQL server | `postgresql*.rpm` atau OS repo package | `/monitoring/sources/rpm` |
-| DPA Python wheels | `oracledb*.whl`, `psycopg2*.whl` | `/monitoring/sources/python` |
+| DPA Python wheels | `oracledb*.whl`, `psycopg2*.whl`, `pymssql*.whl` | `/monitoring/sources/python` |
 
 Jika `/monitoring` belum ada, copy repo ke VM dan jalankan preparation step:
 
@@ -145,12 +145,14 @@ vi inventory/targets.csv
 Required columns:
 
 ```text
-host,ip,node,oracle,oracle_dpa,oracle_service,mssql,app,tier,owner
+host,ip,node,oracle,oracle_dpa,oracle_service,mssql,mssql_dpa,mssql_database,mssql_port,app,tier,owner
 ```
 
-Gunakan `yes` atau `no` untuk kolom `node`, `oracle`, `oracle_dpa`, dan `mssql`.
+Gunakan `yes` atau `no` untuk kolom `node`, `oracle`, `oracle_dpa`, `mssql`, dan `mssql_dpa`.
 
 `oracle_dpa=yes` berarti database itu tetap dimonitor oleh exporter Prometheus, plus dibuatkan template env untuk deep DPA sampler. `oracle_service` dipakai untuk template `DPA_ORACLE_DSN`; isi dengan service name Oracle target.
+
+`mssql_dpa=yes` berarti SQL Server itu tetap dimonitor oleh exporter Prometheus, plus dibuatkan template env untuk deep DPA sampler. `mssql_database` biasanya `master`; `mssql_port` default `1433`.
 
 Generate Prometheus `file_sd` target files:
 
@@ -181,6 +183,14 @@ Untuk target dengan `oracle_dpa=yes`, copy template env ke VM setelah install DP
 sudo scripts/install_dpa_target.sh <target>
 sudo vi /monitoring/dpa/conf/<target>.env
 sudo systemctl enable --now dpa_sampler@<target>.timer
+```
+
+Untuk target dengan `mssql_dpa=yes`:
+
+```bash
+sudo bash scripts/install_mssql_dpa_target.sh <target>
+sudo vi /monitoring/dpa/conf/mssql-<target>.env
+sudo systemctl enable --now mssql_dpa_sampler@<target>.timer
 ```
 
 ## 6. Deploy All Components
@@ -230,7 +240,7 @@ sudo ./09_health_check.sh
 
 Node exporter start langsung karena tidak membutuhkan database credential. Oracle dan MSSQL exporters hanya start otomatis jika connection string sudah benar.
 
-`10_install_postgres_dpa.sh` membuat PostgreSQL local repository, user `dpa_app`, user `dpa_reader`, schema `dpa`, datasource Grafana `DPA Repository`, dan templated systemd timer `dpa_sampler@<target>.timer`. Timer tidak dipaksa start selama file env target di `/monitoring/dpa/conf/<target>.env` masih berisi placeholder Oracle `CHANGE_ME`.
+`10_install_postgres_dpa.sh` membuat PostgreSQL local repository, user `dpa_app`, user `dpa_reader`, schema `dpa`, datasource Grafana `DPA Repository`, templated systemd timer `dpa_sampler@<target>.timer` untuk Oracle, dan `mssql_dpa_sampler@<target>.timer` untuk SQL Server. Timer tidak dipaksa start selama file env target masih berisi placeholder `CHANGE_ME`.
 
 ## 8. Configure Database Exporters
 
@@ -366,10 +376,13 @@ GO
 
 CREATE USER [monitoring_user] FOR LOGIN [monitoring_user];
 GRANT SELECT ON dbo.backupset TO [monitoring_user];
+GRANT SELECT ON dbo.backupmediafamily TO [monitoring_user];
+GRANT SELECT ON dbo.sysjobs TO [monitoring_user];
+GRANT SELECT ON dbo.sysjobhistory TO [monitoring_user];
 GO
 ```
 
-Untuk environment yang lebih ketat, mulai dari `VIEW SERVER STATE`, test exporter, lalu tambahkan permission hanya untuk query metrik yang gagal.
+Untuk SQL Server 2022 dengan permission granular, organisasi tertentu memakai `VIEW SERVER PERFORMANCE STATE` sebagai tambahan/pengganti sesuai policy. Untuk environment yang lebih ketat, mulai dari `VIEW SERVER STATE`, test exporter dan DPA sampler, lalu tambahkan permission hanya untuk query metrik yang gagal.
 
 ### Oracle Exporter
 
@@ -417,6 +430,52 @@ Restart dan validasi:
 sudo systemctl restart mssql_exporter
 sudo systemctl status mssql_exporter --no-pager
 curl http://localhost:9182/metrics | grep '^mssql_up'
+```
+
+### MSSQL DPA Repository Sampler
+
+Untuk target yang dipilih dengan `mssql_dpa=yes`, install template env setelah PostgreSQL DPA repository siap:
+
+```bash
+sudo bash scripts/install_mssql_dpa_target.sh db-vm-02
+sudo vi /monitoring/dpa/conf/mssql-db-vm-02.env
+```
+
+Minimum:
+
+```bash
+DPA_MSSQL_HOST=mssql-host
+DPA_MSSQL_PORT=1433
+DPA_MSSQL_USER=monitoring_user
+DPA_MSSQL_PASSWORD=CHANGE_ME_STRONG_PASSWORD
+DPA_MSSQL_DATABASE=master
+DPA_MSSQL_INSTANCE_NAME=mssql-prod-01
+```
+
+Optional controls:
+
+```bash
+DPA_SQL_TOP_N=50
+DPA_PLAN_TOP_N=20
+DPA_RETENTION_DAYS=35
+DPA_ENABLE_PLAN_SNAPSHOT=true
+DPA_ENABLE_MSSQL_OPS=true
+DPA_ENABLE_ADVISORY=true
+```
+
+Start and validate:
+
+```bash
+sudo systemctl enable --now mssql_dpa_sampler@db-vm-02.timer
+sudo systemctl start mssql_dpa_sampler@db-vm-02.service
+sudo journalctl -u mssql_dpa_sampler@db-vm-02.service -n 100 --no-pager
+sudo runuser -u postgres -- psql -d dpa_repository -c "SELECT count(*) FROM dpa.mssql_request_sample;"
+```
+
+Grafana dashboard:
+
+```text
+MSSQL / 07 - MSSQL DPA Repository
 ```
 
 ## 9. Runtime Tuning

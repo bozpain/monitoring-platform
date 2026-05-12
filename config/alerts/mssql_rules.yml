@@ -137,6 +137,7 @@ groups:
         annotations:
           summary: "Blocking session detected on {{ $labels.instance }}"
           description: "Blocked sessions > 0"
+          runbook_url: "docs/runbooks/mssql/blocking.md"
 
       - alert: MSSQLSevereBlocking
         expr: mssql_blocked_sessions{job="mssql"} >= 5
@@ -148,6 +149,7 @@ groups:
         annotations:
           summary: "Severe blocking on {{ $labels.instance }}"
           description: "Blocked sessions >= 5"
+          runbook_url: "docs/runbooks/mssql/blocking.md"
 
       - alert: MSSQLDeadlockDetected
         expr: increase(mssql_deadlocks_total{job="mssql"}[5m]) > 0
@@ -159,6 +161,7 @@ groups:
         annotations:
           summary: "Deadlock detected on {{ $labels.instance }}"
           description: "Deadlock occurred in last 5 minutes"
+          runbook_url: "docs/runbooks/mssql/blocking.md"
 
       - alert: MSSQLLongRunningQuery
         expr: mssql_long_running_requests{job="mssql"} > 0
@@ -170,6 +173,7 @@ groups:
         annotations:
           summary: "Long running query on {{ $labels.instance }}"
           description: "Query running > 5 minutes"
+          runbook_url: "docs/runbooks/mssql/long_running_query.md"
 
       - alert: MSSQLHighWaitTimeRate
         expr: |
@@ -184,6 +188,7 @@ groups:
         annotations:
           summary: "High SQL Server wait time on {{ $labels.instance }}"
           description: "Total wait time rate > 5000 ms/sec. Check top wait types and top SQL."
+          runbook_url: "docs/runbooks/mssql/high_waits.md"
 
       - alert: MSSQLHighSignalWaitRatio
         expr: |
@@ -200,6 +205,7 @@ groups:
         annotations:
           summary: "High SQL Server signal wait ratio on {{ $labels.instance }}"
           description: "Signal waits are > 25% of total waits. Check CPU pressure and runnable workload."
+          runbook_url: "docs/runbooks/mssql/cpu_pressure.md"
 
       - alert: MSSQLReadLatencyHigh
         expr: |
@@ -216,6 +222,7 @@ groups:
         annotations:
           summary: "SQL Server read latency high on {{ $labels.instance }}"
           description: "Database {{ $labels.database }} read latency > 20ms/op."
+          runbook_url: "docs/runbooks/mssql/io_latency.md"
 
       - alert: MSSQLWriteLatencyHigh
         expr: |
@@ -232,6 +239,7 @@ groups:
         annotations:
           summary: "SQL Server write latency high on {{ $labels.instance }}"
           description: "Database {{ $labels.database }} write latency > 20ms/op."
+          runbook_url: "docs/runbooks/mssql/io_latency.md"
 
       # =========================
       # MEMORY
@@ -246,6 +254,7 @@ groups:
         annotations:
           summary: "Memory pressure on {{ $labels.instance }}"
           description: "Memory grants pending detected"
+          runbook_url: "docs/runbooks/mssql/memory_pressure.md"
 
       - alert: MSSQLLowBufferCacheHitRatio
         expr: mssql_buffer_cache_hit_ratio{job="mssql"} < 0.90
@@ -257,6 +266,7 @@ groups:
         annotations:
           summary: "Low buffer cache hit ratio on {{ $labels.instance }}"
           description: "Buffer cache hit ratio < 90%"
+          runbook_url: "docs/runbooks/mssql/memory_pressure.md"
 
       - alert: MSSQLPageLifeExpectancyLow
         expr: mssql_page_life_expectancy_seconds{job="mssql"} < 300
@@ -268,6 +278,7 @@ groups:
         annotations:
           summary: "Low page life expectancy on {{ $labels.instance }}"
           description: "Page life expectancy < 300 seconds. Check memory pressure and I/O."
+          runbook_url: "docs/runbooks/mssql/memory_pressure.md"
 
       # =========================
       # CONNECTION
@@ -282,3 +293,57 @@ groups:
         annotations:
           summary: "High connections on {{ $labels.instance }}"
           description: "Connections > 500"
+          runbook_url: "docs/runbooks/mssql/high_connections.md"
+
+      - alert: MSSQLWaitTimeAnomaly
+        expr: |
+          sum by (instance, app, tier, owner) (
+            rate(mssql_wait_time_ms_total{job="mssql"}[5m])
+          ) > 500
+          and
+          sum by (instance, app, tier, owner) (
+            rate(mssql_wait_time_ms_total{job="mssql"}[5m])
+          ) > 2 * sum by (instance, app, tier, owner) (
+            mssql:wait_time_ms_per_sec:avg_7d{job="mssql"}
+          )
+        for: 10m
+        labels:
+          severity: warning
+          category: anomaly
+          db_type: mssql
+        annotations:
+          summary: "SQL Server wait anomaly on {{ $labels.instance }}"
+          description: "Wait time rate is >2x its 7-day baseline. Check top waits and query attribution."
+          runbook_url: "docs/runbooks/mssql/high_waits.md"
+
+      - alert: MSSQLPlanChangeRegression
+        expr: |
+          mssql:query_elapsed_seconds_per_sec:rate5m > 1
+          and
+          mssql:query_elapsed_seconds_per_sec:rate5m > 2 * mssql:query_elapsed_seconds_per_sec:avg_6h
+          and on (instance, database, query_hash)
+          max by (instance, database, query_hash) (mssql:query_plan_count >= 2)
+        for: 10m
+        labels:
+          severity: warning
+          category: sql-plan
+          db_type: mssql
+        annotations:
+          summary: "Possible SQL Server plan regression on {{ $labels.instance }}"
+          description: "Query hash {{ $labels.query_hash }} has multiple plans and elapsed rate is >2x baseline. Plan={{ $labels.query_plan_hash }}."
+          runbook_url: "docs/runbooks/mssql/plan_regression.md"
+
+      - alert: MSSQLInefficientLogicalIO
+        expr: |
+          mssql:query_logical_reads_per_exec:rate5m >= 100000
+          and
+          mssql:query_executions_per_sec:rate5m > 0.1
+        for: 15m
+        labels:
+          severity: warning
+          category: advisory
+          db_type: mssql
+        annotations:
+          summary: "SQL Server high logical reads per execution on {{ $labels.instance }}"
+          description: "Query hash {{ $labels.query_hash }} is doing high logical reads per execution. Check predicates, indexes, stats, and plan {{ $labels.query_plan_hash }}."
+          runbook_url: "docs/runbooks/mssql/inefficient_logical_io.md"

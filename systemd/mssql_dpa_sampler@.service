@@ -1,0 +1,24 @@
+[Unit]
+Description=MSSQL DPA Repository Sampler (%i)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=monitoring
+Group=monitoring
+EnvironmentFile=/monitoring/dpa/conf/mssql-%i.env
+WorkingDirectory=/monitoring/dpa
+ExecStart=/usr/bin/python3 /monitoring/dpa/bin/mssql_dpa_sampler.py --once
+
+StandardOutput=append:/monitoring/logs/dpa/mssql-%i.log
+StandardError=append:/monitoring/logs/dpa/mssql-%i-error.log
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/monitoring/logs/dpa
+
+[Install]
+WantedBy=multi-user.target

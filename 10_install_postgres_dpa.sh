@@ -14,17 +14,23 @@ DPA_LOG_DIR="$BASE_DIR/logs/dpa"
 
 SCHEMA_SRC="./config/dpa/dpa_repository.sql"
 ENV_SRC="./config/dpa/dpa_sampler.env.example"
+MSSQL_ENV_SRC="./config/dpa/mssql_dpa_sampler.env.example"
 REQ_SRC="./config/dpa/python-requirements.txt"
 SAMPLER_SRC="./scripts/dpa_sampler.py"
+MSSQL_SAMPLER_SRC="./scripts/mssql_dpa_sampler.py"
 SERVICE_SRC="./systemd/dpa_sampler.service"
 TIMER_SRC="./systemd/dpa_sampler.timer"
 TEMPLATE_SERVICE_SRC="./systemd/dpa_sampler@.service"
 TEMPLATE_TIMER_SRC="./systemd/dpa_sampler@.timer"
+MSSQL_TEMPLATE_SERVICE_SRC="./systemd/mssql_dpa_sampler@.service"
+MSSQL_TEMPLATE_TIMER_SRC="./systemd/mssql_dpa_sampler@.timer"
 
 SERVICE_DST="/etc/systemd/system/dpa_sampler.service"
 TIMER_DST="/etc/systemd/system/dpa_sampler.timer"
 TEMPLATE_SERVICE_DST="/etc/systemd/system/dpa_sampler@.service"
 TEMPLATE_TIMER_DST="/etc/systemd/system/dpa_sampler@.timer"
+MSSQL_TEMPLATE_SERVICE_DST="/etc/systemd/system/mssql_dpa_sampler@.service"
+MSSQL_TEMPLATE_TIMER_DST="/etc/systemd/system/mssql_dpa_sampler@.timer"
 
 DB_NAME="dpa_repository"
 APP_USER="dpa_app"
@@ -53,12 +59,16 @@ require_file() {
 
 require_file "$SCHEMA_SRC"
 require_file "$ENV_SRC"
+require_file "$MSSQL_ENV_SRC"
 require_file "$REQ_SRC"
 require_file "$SAMPLER_SRC"
+require_file "$MSSQL_SAMPLER_SRC"
 require_file "$SERVICE_SRC"
 require_file "$TIMER_SRC"
 require_file "$TEMPLATE_SERVICE_SRC"
 require_file "$TEMPLATE_TIMER_SRC"
+require_file "$MSSQL_TEMPLATE_SERVICE_SRC"
+require_file "$MSSQL_TEMPLATE_TIMER_SRC"
 
 mkdir -p "$DPA_BIN_DIR" "$DPA_CONF_DIR" "$DPA_SQL_DIR" "$DPA_LOG_DIR" "$PYTHON_WHEEL_DIR"
 
@@ -179,6 +189,7 @@ install_python_dependencies() {
   if python3 - <<'PY' >/dev/null 2>&1
 import oracledb
 import psycopg2
+import pymssql
 PY
   then
     echo "[INFO] Python dependencies already installed"
@@ -192,7 +203,7 @@ PY
   fi
 
   echo "[WARN] Python dependencies are not installed."
-  echo "[WARN] Required: oracledb and psycopg2."
+  echo "[WARN] Required: oracledb, psycopg2, and pymssql."
   echo "[WARN] Put wheels in $PYTHON_WHEEL_DIR and rerun, or install OS packages manually."
 }
 
@@ -200,7 +211,9 @@ install_sampler() {
   echo "[INFO] Installing DPA sampler..."
 
   cp "$SAMPLER_SRC" "$DPA_BIN_DIR/dpa_sampler.py"
+  cp "$MSSQL_SAMPLER_SRC" "$DPA_BIN_DIR/mssql_dpa_sampler.py"
   chmod 750 "$DPA_BIN_DIR/dpa_sampler.py"
+  chmod 750 "$DPA_BIN_DIR/mssql_dpa_sampler.py"
 
   local app_password
   app_password=$(grep '^DPA_APP_PASSWORD=' "$DPA_CONF_DIR/dpa_repository.env" | cut -d= -f2-)
@@ -232,8 +245,10 @@ install_systemd_units() {
   cp "$TIMER_SRC" "$TIMER_DST"
   cp "$TEMPLATE_SERVICE_SRC" "$TEMPLATE_SERVICE_DST"
   cp "$TEMPLATE_TIMER_SRC" "$TEMPLATE_TIMER_DST"
+  cp "$MSSQL_TEMPLATE_SERVICE_SRC" "$MSSQL_TEMPLATE_SERVICE_DST"
+  cp "$MSSQL_TEMPLATE_TIMER_SRC" "$MSSQL_TEMPLATE_TIMER_DST"
 
-  systemd-analyze verify "$SERVICE_DST" "$TIMER_DST" "$TEMPLATE_SERVICE_DST" "$TEMPLATE_TIMER_DST" || true
+  systemd-analyze verify "$SERVICE_DST" "$TIMER_DST" "$TEMPLATE_SERVICE_DST" "$TEMPLATE_TIMER_DST" "$MSSQL_TEMPLATE_SERVICE_DST" "$MSSQL_TEMPLATE_TIMER_DST" || true
   systemctl daemon-reload
   systemctl enable dpa_sampler.timer
   systemctl enable "dpa_sampler@$DPA_DEFAULT_INSTANCE.timer"
@@ -241,7 +256,7 @@ install_systemd_units() {
   if grep -q "CHANGE_ME" "$DPA_CONF_DIR/$DPA_DEFAULT_INSTANCE.env"; then
     echo "[WARN] Oracle DPA sampler credential placeholders still exist."
     echo "[WARN] Template timer enabled but not started. Edit $DPA_CONF_DIR/$DPA_DEFAULT_INSTANCE.env first."
-  elif python3 - <<'PY' >/dev/null 2>&1
+elif python3 - <<'PY' >/dev/null 2>&1
 import oracledb
 import psycopg2
 PY
@@ -294,8 +309,13 @@ echo "       cp $DPA_CONF_DIR/$DPA_DEFAULT_INSTANCE.env $DPA_CONF_DIR/oracle-pro
 echo "       vi $DPA_CONF_DIR/oracle-prod-02.env"
 echo "       systemctl enable --now dpa_sampler@oracle-prod-02.timer"
 echo ""
+echo "For MSSQL DPA targets generated from inventory:"
+echo "       sudo bash scripts/install_mssql_dpa_target.sh <target>"
+echo "       sudo vi $DPA_CONF_DIR/mssql-<target>.env"
+echo "       sudo systemctl enable --now mssql_dpa_sampler@<target>.timer"
+echo ""
 echo "Then install Python wheels if needed:"
-echo "       cp oracledb*.whl psycopg2*.whl $PYTHON_WHEEL_DIR/"
+echo "       cp oracledb*.whl psycopg2*.whl pymssql*.whl $PYTHON_WHEEL_DIR/"
 echo "       ./10_install_postgres_dpa.sh"
 echo ""
 echo "Start sampler:"

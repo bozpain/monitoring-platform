@@ -96,3 +96,45 @@ groups:
         expr: mssql_query_logical_reads_value
       - record: mssql_query_execution_count
         expr: mssql_query_execution_count_value
+
+      - record: mssql:wait_time_ms_per_sec:avg_7d
+        expr: avg_over_time(rate(mssql_wait_time_ms_total{job="mssql"}[5m])[7d:])
+      - record: mssql:batch_requests_per_sec:avg_7d
+        expr: avg_over_time(rate(mssql_batch_requests_total{job="mssql"}[5m])[7d:])
+
+      - record: mssql:query_cpu_seconds_per_sec:rate5m
+        expr: |
+          sum by (instance, database, query_hash, query_plan_hash, statement_context, app, tier, owner) (
+            clamp_min(rate(mssql_query_workload_delta_cpu_time_us{job="mssql"}[5m]), 0) / 1000000
+          )
+      - record: mssql:query_elapsed_seconds_per_sec:rate5m
+        expr: |
+          sum by (instance, database, query_hash, query_plan_hash, statement_context, app, tier, owner) (
+            clamp_min(rate(mssql_query_workload_delta_elapsed_time_us{job="mssql"}[5m]), 0) / 1000000
+          )
+      - record: mssql:query_executions_per_sec:rate5m
+        expr: |
+          sum by (instance, database, query_hash, query_plan_hash, statement_context, app, tier, owner) (
+            clamp_min(rate(mssql_query_workload_delta_executions{job="mssql"}[5m]), 0)
+          )
+      - record: mssql:query_logical_reads_per_exec:rate5m
+        expr: |
+          sum by (instance, database, query_hash, query_plan_hash, statement_context, app, tier, owner) (
+            clamp_min(rate(mssql_query_workload_delta_logical_reads{job="mssql"}[5m]), 0)
+          )
+          /
+          clamp_min(
+            sum by (instance, database, query_hash, query_plan_hash, statement_context, app, tier, owner) (
+              clamp_min(rate(mssql_query_workload_delta_executions{job="mssql"}[5m]), 0)
+            ),
+            1
+          )
+      - record: mssql:query_elapsed_seconds_per_sec:avg_6h
+        expr: avg_over_time(mssql:query_elapsed_seconds_per_sec:rate5m[6h])
+      - record: mssql:active_sessions_by_query_wait
+        expr: |
+          sum by (instance, database, query_hash, wait_type, login_name, host_name, program_name, app, tier, owner) (
+            mssql_active_wait_sql_value{job="mssql"}
+          )
+      - record: mssql:query_plan_count
+        expr: mssql_query_plan_count_value{job="mssql"}

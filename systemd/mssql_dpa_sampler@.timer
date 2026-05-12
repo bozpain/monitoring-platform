@@ -1,0 +1,12 @@
+[Unit]
+Description=Run MSSQL DPA Repository Sampler every minute (%i)
+
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=60s
+AccuracySec=10s
+Persistent=true
+Unit=mssql_dpa_sampler@%i.service
+
+[Install]
+WantedBy=timers.target
