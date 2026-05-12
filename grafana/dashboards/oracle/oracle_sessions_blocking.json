@@ -3,7 +3,7 @@
   "uid": "oracle-sessions-blocking",
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "15s",
   "tags": ["oracle", "sessions", "blocking"],
   "editable": true,
@@ -322,6 +322,24 @@
         {
           "expr": "sort_desc(oracle_active_sql_value{instance=~\"$instance\"})",
           "legendFormat": "sql={{sql_id}} user={{username}} program={{program}}",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Blocking by SQL",
+      "gridPos": { "x": 0, "y": 52, "w": 24, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sort_desc(oracle:blocking_by_sql{instance=~\"$instance\"})",
+          "legendFormat": "blocker={{blocking_sql_id}} blocked={{blocked_sql_id}} wait={{event}}",
           "format": "table",
           "instant": true
         }

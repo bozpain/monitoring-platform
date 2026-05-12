@@ -89,6 +89,14 @@ This catalog describes the default alert policy. Thresholds are conservative sta
 | `OracleLongRunningQuery` | warning | active session > 5m | Slow SQL / possible blocker |
 | `OracleHighWaitClassActivity` | warning | wait class active sessions >= 10 for 10m | DPA-style wait pressure |
 | `OracleHighDBTime` | warning | DB time/sec >= 60 for 10m | High database response-time load |
+| `OracleDBTimeAnomaly` | warning | DB time >2x 7-day baseline for 10m | Workload is abnormal for this database |
+| `OracleWaitClassAnomaly` | warning | wait class >2x 7-day baseline for 10m | A wait category is unusually dominant |
+| `OraclePlanChangeRegression` | warning | SQL has multiple plans and elapsed rate >2x 6-hour baseline | Possible SQL plan regression |
+| `OracleLogFileSyncPressure` | warning | active `log file sync` sessions >= 5 for 10m | Commit latency or redo I/O pressure |
+| `OracleSequentialReadPressure` | warning | active `db file sequential read` sessions >= 10 for 10m | Single-block read pressure |
+| `OracleCursorContention` | warning | cursor/library cache waits >= 3 for 5m | Cursor sharing, parsing, or deployment contention |
+| `OracleParseStorm` | warning | parse calls >= 50/sec for 10m | Application cursor reuse or bind issue |
+| `OracleInefficientLogicalIO` | warning | buffer gets per execution >= 100000 for 15m | SQL plan or predicate inefficiency |
 
 ## Node Alerts
 

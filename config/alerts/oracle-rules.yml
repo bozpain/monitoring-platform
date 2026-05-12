@@ -196,3 +196,117 @@ groups:
         annotations:
           summary: "High Oracle DB time on {{ $labels.instance }}"
           description: "DB time per second >= 60. Check wait class, top SQL, and host resource pressure."
+
+      - alert: OracleDBTimeAnomaly
+        expr: |
+          oracle_db_time_per_sec_value{job="oracle"} > 5
+          and
+          oracle_db_time_per_sec_value{job="oracle"} > 2 * oracle:db_time_per_sec:avg_7d{job="oracle"}
+        for: 10m
+        labels:
+          severity: warning
+          category: anomaly
+          db_type: oracle
+        annotations:
+          summary: "Oracle DB time anomaly on {{ $labels.instance }}"
+          description: "DB time is >2x its 7-day baseline. Check top wait events, top SQL rate, and recent plan changes."
+
+      - alert: OracleWaitClassAnomaly
+        expr: |
+          oracle_ash_like_wait_class_value{job="oracle", wait_class!~"Idle|UNKNOWN"} >= 5
+          and
+          oracle_ash_like_wait_class_value{job="oracle", wait_class!~"Idle|UNKNOWN"} > 2 * oracle:wait_class_active_sessions:avg_7d{job="oracle"}
+        for: 10m
+        labels:
+          severity: warning
+          category: anomaly
+          db_type: oracle
+        annotations:
+          summary: "Oracle wait class anomaly on {{ $labels.instance }}"
+          description: "Wait class {{ $labels.wait_class }} is >2x its 7-day baseline."
+
+      - alert: OraclePlanChangeRegression
+        expr: |
+          oracle:sql_elapsed_seconds_per_sec:rate5m > 1
+          and
+          oracle:sql_elapsed_seconds_per_sec:rate5m > 2 * oracle:sql_elapsed_seconds_per_sec:avg_6h
+          and on (instance, sql_id)
+          max by (instance, sql_id) (oracle:sql_plan_count >= 2)
+        for: 10m
+        labels:
+          severity: warning
+          category: sql-plan
+          db_type: oracle
+        annotations:
+          summary: "Possible Oracle SQL plan regression on {{ $labels.instance }}"
+          description: "SQL {{ $labels.sql_id }} has multiple cached plans and elapsed time rate is >2x its 6-hour baseline. Plan={{ $labels.plan_hash_value }}, module={{ $labels.module }}."
+
+      - alert: OracleLogFileSyncPressure
+        expr: |
+          sum by (instance, app, tier, owner) (
+            oracle:active_sessions_by_sql_wait{event="log file sync"}
+          ) >= 5
+        for: 10m
+        labels:
+          severity: warning
+          category: advisory
+          db_type: oracle
+        annotations:
+          summary: "Oracle commit latency pressure on {{ $labels.instance }}"
+          description: "Multiple active sessions are waiting on log file sync. Check commit frequency, redo I/O latency, and application commit batching."
+
+      - alert: OracleSequentialReadPressure
+        expr: |
+          sum by (instance, app, tier, owner) (
+            oracle:active_sessions_by_sql_wait{event="db file sequential read"}
+          ) >= 10
+        for: 10m
+        labels:
+          severity: warning
+          category: advisory
+          db_type: oracle
+        annotations:
+          summary: "Oracle single-block read pressure on {{ $labels.instance }}"
+          description: "High db file sequential read activity. Check top SQL by disk reads per execution, index access paths, and storage latency."
+
+      - alert: OracleCursorContention
+        expr: |
+          sum by (instance, event, app, tier, owner) (
+            oracle:active_sessions_by_sql_wait{event=~"cursor: pin S wait on X|library cache lock|library cache pin"}
+          ) >= 3
+        for: 5m
+        labels:
+          severity: warning
+          category: advisory
+          db_type: oracle
+        annotations:
+          summary: "Oracle cursor/library cache contention on {{ $labels.instance }}"
+          description: "Event {{ $labels.event }} is active. Check parse storm, version count, recent deployments, and bind variable usage."
+
+      - alert: OracleParseStorm
+        expr: |
+          sum by (instance, sql_id, parsing_schema, module, app, tier, owner) (
+            oracle:sql_parse_calls_per_sec:rate5m
+          ) >= 50
+        for: 10m
+        labels:
+          severity: warning
+          category: advisory
+          db_type: oracle
+        annotations:
+          summary: "Oracle parse storm on {{ $labels.instance }}"
+          description: "SQL {{ $labels.sql_id }} parse calls are high. Module={{ $labels.module }}, schema={{ $labels.parsing_schema }}."
+
+      - alert: OracleInefficientLogicalIO
+        expr: |
+          oracle:sql_buffer_gets_per_exec:rate5m >= 100000
+          and
+          oracle:sql_executions_per_sec:rate5m > 0.1
+        for: 15m
+        labels:
+          severity: warning
+          category: advisory
+          db_type: oracle
+        annotations:
+          summary: "Oracle SQL high logical I/O per execution on {{ $labels.instance }}"
+          description: "SQL {{ $labels.sql_id }} is doing high buffer gets per execution. Check predicates, indexes, join order, and plan {{ $labels.plan_hash_value }}."

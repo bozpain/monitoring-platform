@@ -18,3 +18,82 @@ groups:
         expr: count without (sid, serial, username, program, machine, status, event, sql_id) (oracle_long_running_sessions_value)
       - record: oracle_deadlocks_total
         expr: oracle_deadlocks_total_value
+
+      - record: oracle:db_time_per_sec:avg_7d
+        expr: avg_over_time(oracle_db_time_per_sec_value{job="oracle"}[7d])
+      - record: oracle:cpu_usage_per_sec:avg_7d
+        expr: avg_over_time(oracle_cpu_usage_per_sec_value{job="oracle"}[7d])
+      - record: oracle:wait_class_active_sessions:avg_7d
+        expr: avg_over_time(oracle_ash_like_wait_class_value{job="oracle", wait_class!~"Idle|UNKNOWN"}[7d])
+
+      - record: oracle:sql_elapsed_seconds_per_sec:rate5m
+        expr: |
+          sum by (instance, sql_id, plan_hash_value, parsing_schema, module, action, service_name, app, tier, owner) (
+            clamp_min(rate(oracle_sql_workload_delta_elapsed_time_us{job="oracle"}[5m]), 0) / 1000000
+          )
+      - record: oracle:sql_cpu_seconds_per_sec:rate5m
+        expr: |
+          sum by (instance, sql_id, plan_hash_value, parsing_schema, module, action, service_name, app, tier, owner) (
+            clamp_min(rate(oracle_sql_workload_delta_cpu_time_us{job="oracle"}[5m]), 0) / 1000000
+          )
+      - record: oracle:sql_executions_per_sec:rate5m
+        expr: |
+          sum by (instance, sql_id, plan_hash_value, parsing_schema, module, action, service_name, app, tier, owner) (
+            clamp_min(rate(oracle_sql_workload_delta_executions{job="oracle"}[5m]), 0)
+          )
+      - record: oracle:sql_parse_calls_per_sec:rate5m
+        expr: |
+          sum by (instance, sql_id, plan_hash_value, parsing_schema, module, action, service_name, app, tier, owner) (
+            clamp_min(rate(oracle_sql_workload_delta_parse_calls{job="oracle"}[5m]), 0)
+          )
+      - record: oracle:sql_buffer_gets_per_exec:rate5m
+        expr: |
+          sum by (instance, sql_id, plan_hash_value, parsing_schema, module, action, service_name, app, tier, owner) (
+            clamp_min(rate(oracle_sql_workload_delta_buffer_gets{job="oracle"}[5m]), 0)
+          )
+          /
+          clamp_min(
+            sum by (instance, sql_id, plan_hash_value, parsing_schema, module, action, service_name, app, tier, owner) (
+              clamp_min(rate(oracle_sql_workload_delta_executions{job="oracle"}[5m]), 0)
+            ),
+            1
+          )
+      - record: oracle:sql_disk_reads_per_exec:rate5m
+        expr: |
+          sum by (instance, sql_id, plan_hash_value, parsing_schema, module, action, service_name, app, tier, owner) (
+            clamp_min(rate(oracle_sql_workload_delta_disk_reads{job="oracle"}[5m]), 0)
+          )
+          /
+          clamp_min(
+            sum by (instance, sql_id, plan_hash_value, parsing_schema, module, action, service_name, app, tier, owner) (
+              clamp_min(rate(oracle_sql_workload_delta_executions{job="oracle"}[5m]), 0)
+            ),
+            1
+          )
+      - record: oracle:sql_rows_per_exec:rate5m
+        expr: |
+          sum by (instance, sql_id, plan_hash_value, parsing_schema, module, action, service_name, app, tier, owner) (
+            clamp_min(rate(oracle_sql_workload_delta_rows_processed{job="oracle"}[5m]), 0)
+          )
+          /
+          clamp_min(
+            sum by (instance, sql_id, plan_hash_value, parsing_schema, module, action, service_name, app, tier, owner) (
+              clamp_min(rate(oracle_sql_workload_delta_executions{job="oracle"}[5m]), 0)
+            ),
+            1
+          )
+      - record: oracle:sql_elapsed_seconds_per_sec:avg_6h
+        expr: avg_over_time(oracle:sql_elapsed_seconds_per_sec:rate5m[6h])
+
+      - record: oracle:active_sessions_by_sql_wait
+        expr: |
+          sum by (instance, sql_id, plan_hash_value, wait_class, event, username, module, action, service_name, machine, app, tier, owner) (
+            oracle_session_wait_sql_value{job="oracle"}
+          )
+      - record: oracle:blocking_by_sql
+        expr: |
+          sum by (instance, blocking_sid, blocking_sql_id, blocked_sql_id, blocking_user, blocked_user, wait_class, event, app, tier, owner) (
+            oracle_blocking_sql_value{job="oracle"}
+          )
+      - record: oracle:sql_plan_count
+        expr: oracle_sql_plan_count_value{job="oracle"}

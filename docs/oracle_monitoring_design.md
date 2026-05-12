@@ -16,6 +16,8 @@ We focus on:
 2. **Wait**
 3. **SQL**
 4. **Blocking**
+5. **Baseline**
+6. **Advisory**
 
 These represent the core pillars of database performance analysis.
 
@@ -68,10 +70,12 @@ Purpose:
 | -------------------------- | ----------------------- |
 | oracle_ash_like_wait_class | Wait class distribution |
 | oracle_ash_like_wait_event | Detailed wait events    |
+| oracle_session_wait_sql    | Active waits by SQL, plan, module, action, service, user, machine |
 
 Purpose:
 
 - Identify bottlenecks
+- Attribute active waits to SQL and application context
 - Replace AWR/ASH basic insight
 
 ---
@@ -83,10 +87,14 @@ Purpose:
 | oracle_active_sql          | Active SQL         |
 | oracle_top_sql_elapsed     | Heavy queries      |
 | oracle_top_sql_buffer_gets | High logical reads |
+| oracle_sql_workload_delta  | Recent SQL workload counters by SQL ID, plan, schema, module, action, service |
+| oracle_sql_plan_count      | SQL IDs with multiple cached execution plans |
 
 Purpose:
 
 - Identify problematic queries
+- Prefer recent rate and per-execution efficiency over cumulative cursor-cache totals
+- Detect plan instability
 - Support SQL tuning
 
 ---
@@ -97,11 +105,50 @@ Purpose:
 | ----------------------- | -------------------------- |
 | oracle_sessions_blocked | Number of blocked sessions |
 | oracle_blocking_tree    | Blocking relationships     |
+| oracle_blocking_sql     | Blocking relationships by blocker and blocked SQL ID |
 
 Purpose:
 
 - Detect locking issues
 - Identify root cause session
+- Identify blocker SQL and victim SQL
+
+---
+
+### 5. Baseline and Anomaly Metrics
+
+| Metric                                | Description             |
+| ------------------------------------- | ----------------------- |
+| oracle:db_time_per_sec:avg_7d         | 7-day DB time baseline  |
+| oracle:wait_class_active_sessions:avg_7d | 7-day wait-class baseline |
+| oracle:sql_elapsed_seconds_per_sec:avg_6h | 6-hour SQL elapsed baseline |
+
+Purpose:
+
+- Avoid one-size-fits-all thresholds
+- Detect unusual workload for each database
+- Highlight SQL regressions after plan changes
+
+---
+
+### 6. Advisory Rules
+
+| Alert                         | Meaning                    |
+| ----------------------------- | -------------------------- |
+| OracleDBTimeAnomaly           | DB time is above baseline  |
+| OracleWaitClassAnomaly        | A wait class is abnormal   |
+| OraclePlanChangeRegression    | SQL has multiple plans and worse elapsed rate |
+| OracleLogFileSyncPressure     | Commit latency pressure    |
+| OracleSequentialReadPressure  | Single-block read pressure |
+| OracleCursorContention        | Cursor/library cache contention |
+| OracleParseStorm              | Excessive parsing          |
+| OracleInefficientLogicalIO    | High buffer gets per execution |
+
+Purpose:
+
+- Turn raw metrics into diagnosis hints
+- Route operators to the next useful dashboard panel
+- Approximate DPA-style tuning advice without putting SQL text in Prometheus
 
 ---
 
@@ -129,10 +176,18 @@ Exporter → Prometheus → VictoriaMetrics → Grafana
 
 3. **SQL**
    - Active SQL
-   - Top SQL
+   - Top SQL by elapsed and CPU rate
+   - Top SQL by buffer gets, disk reads, rows, and parse calls per execution
+   - Plan change candidates
 
-4. **Blocking**
-   - Blocking Tree (Table)
+4. **Attribution**
+   - Wait-to-SQL table
+   - SQL load by module and service
+   - Blocking by SQL
+
+5. **Advisory**
+   - Baseline ratio
+   - DPA advisory and anomaly alerts
 
 ---
 
@@ -192,17 +247,18 @@ Alerts should be based on:
 
 - Not full replacement for AWR/ASH
 - Snapshot-based, not historical session trace
-- Limited SQL execution plan visibility
+- SQL plan visibility is based on cached cursors unless optional snapshots are scheduled
+- SQL text is intentionally kept out of Prometheus labels; use `config/oracle/oracle-sql-text-snapshot.sql` for drilldown storage
 
 ---
 
 ## Future Enhancements
 
-- Multi-DB labeling
-- Historical trend analysis
-- Query text extraction
-- Alert tuning
-- Anomaly detection
+- Scheduled SQL text and plan snapshot retention
+- Grafana drilldown links from SQL ID to SQL text snapshot store
+- Per-application adaptive baselines
+- Automated runbook links in alert annotations
+- Host-to-database topology mapping for stronger OS correlation
 
 ---
 

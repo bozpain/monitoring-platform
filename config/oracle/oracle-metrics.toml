@@ -340,6 +340,123 @@ WHERE rownum <= 50
 """
 
 [[metric]]
+context = "oracle_sql_workload_delta"
+labels = ["sql_id", "plan_hash_value", "parsing_schema", "module", "action", "service_name"]
+metricsdesc = { elapsed_time_us = "Cumulative SQL elapsed time in microseconds", cpu_time_us = "Cumulative SQL CPU time in microseconds", executions = "Cumulative SQL executions", buffer_gets = "Cumulative SQL buffer gets", disk_reads = "Cumulative SQL disk reads", rows_processed = "Cumulative SQL rows processed", parse_calls = "Cumulative SQL parse calls" }
+request = """
+SELECT sql_id,
+       TO_CHAR(plan_hash_value) AS plan_hash_value,
+       parsing_schema,
+       module,
+       action,
+       service_name,
+       elapsed_time_us,
+       cpu_time_us,
+       executions,
+       buffer_gets,
+       disk_reads,
+       rows_processed,
+       parse_calls
+FROM (
+  SELECT sql_id,
+         plan_hash_value,
+         SUBSTR(NVL(parsing_schema_name, 'UNKNOWN'), 1, 40) AS parsing_schema,
+         SUBSTR(NVL(module, 'UNKNOWN'), 1, 60) AS module,
+         SUBSTR(NVL(action, 'UNKNOWN'), 1, 60) AS action,
+         SUBSTR(NVL(service, 'UNKNOWN'), 1, 60) AS service_name,
+         SUM(elapsed_time) AS elapsed_time_us,
+         SUM(cpu_time) AS cpu_time_us,
+         SUM(executions) AS executions,
+         SUM(buffer_gets) AS buffer_gets,
+         SUM(disk_reads) AS disk_reads,
+         SUM(rows_processed) AS rows_processed,
+         SUM(parse_calls) AS parse_calls
+  FROM v$sql
+  WHERE sql_id IS NOT NULL
+  AND last_active_time >= SYSDATE - (1 / 24)
+  GROUP BY sql_id,
+           plan_hash_value,
+           SUBSTR(NVL(parsing_schema_name, 'UNKNOWN'), 1, 40),
+           SUBSTR(NVL(module, 'UNKNOWN'), 1, 60),
+           SUBSTR(NVL(action, 'UNKNOWN'), 1, 60),
+           SUBSTR(NVL(service, 'UNKNOWN'), 1, 60)
+  ORDER BY SUM(elapsed_time) DESC
+)
+WHERE rownum <= 50
+"""
+
+[[metric]]
+context = "oracle_session_wait_sql"
+labels = ["sql_id", "plan_hash_value", "wait_class", "event", "username", "module", "action", "service_name", "machine"]
+metricsdesc = { value = "Active sessions attributed to SQL, wait, module, service, and machine" }
+request = """
+SELECT NVL(s.sql_id, 'UNKNOWN') AS sql_id,
+       TO_CHAR(NVL(q.plan_hash_value, 0)) AS plan_hash_value,
+       NVL(s.wait_class, 'UNKNOWN') AS wait_class,
+       SUBSTR(NVL(s.event, 'UNKNOWN'), 1, 80) AS event,
+       NVL(s.username, 'UNKNOWN') AS username,
+       SUBSTR(NVL(s.module, 'UNKNOWN'), 1, 60) AS module,
+       SUBSTR(NVL(s.action, 'UNKNOWN'), 1, 60) AS action,
+       SUBSTR(NVL(s.service_name, 'UNKNOWN'), 1, 60) AS service_name,
+       SUBSTR(NVL(s.machine, 'UNKNOWN'), 1, 80) AS machine,
+       COUNT(*) AS value
+FROM v$session s
+LEFT JOIN v$sql q ON s.sql_id = q.sql_id AND s.sql_child_number = q.child_number
+WHERE s.status = 'ACTIVE'
+AND s.type = 'USER'
+AND NVL(s.wait_class, 'UNKNOWN') <> 'Idle'
+GROUP BY NVL(s.sql_id, 'UNKNOWN'),
+         TO_CHAR(NVL(q.plan_hash_value, 0)),
+         NVL(s.wait_class, 'UNKNOWN'),
+         SUBSTR(NVL(s.event, 'UNKNOWN'), 1, 80),
+         NVL(s.username, 'UNKNOWN'),
+         SUBSTR(NVL(s.module, 'UNKNOWN'), 1, 60),
+         SUBSTR(NVL(s.action, 'UNKNOWN'), 1, 60),
+         SUBSTR(NVL(s.service_name, 'UNKNOWN'), 1, 60),
+         SUBSTR(NVL(s.machine, 'UNKNOWN'), 1, 80)
+"""
+
+[[metric]]
+context = "oracle_blocking_sql"
+labels = ["blocking_sid", "blocking_sql_id", "blocked_sql_id", "blocking_user", "blocked_user", "wait_class", "event"]
+metricsdesc = { value = "Blocking relationships attributed to blocking and blocked SQL IDs" }
+request = """
+SELECT TO_CHAR(b.sid) AS blocking_sid,
+       NVL(b.sql_id, 'UNKNOWN') AS blocking_sql_id,
+       NVL(s.sql_id, 'UNKNOWN') AS blocked_sql_id,
+       NVL(b.username, 'UNKNOWN') AS blocking_user,
+       NVL(s.username, 'UNKNOWN') AS blocked_user,
+       NVL(s.wait_class, 'UNKNOWN') AS wait_class,
+       SUBSTR(NVL(s.event, 'UNKNOWN'), 1, 80) AS event,
+       COUNT(*) AS value
+FROM v$session s
+JOIN v$session b ON s.blocking_session = b.sid
+WHERE s.blocking_session IS NOT NULL
+GROUP BY TO_CHAR(b.sid),
+         NVL(b.sql_id, 'UNKNOWN'),
+         NVL(s.sql_id, 'UNKNOWN'),
+         NVL(b.username, 'UNKNOWN'),
+         NVL(s.username, 'UNKNOWN'),
+         NVL(s.wait_class, 'UNKNOWN'),
+         SUBSTR(NVL(s.event, 'UNKNOWN'), 1, 80)
+"""
+
+[[metric]]
+context = "oracle_sql_plan_count"
+labels = ["sql_id"]
+metricsdesc = { value = "Number of currently cached execution plans per SQL ID" }
+request = """
+SELECT sql_id,
+       COUNT(DISTINCT plan_hash_value) AS value
+FROM v$sql
+WHERE sql_id IS NOT NULL
+AND plan_hash_value IS NOT NULL
+AND last_active_time >= SYSDATE - 1
+GROUP BY sql_id
+HAVING COUNT(DISTINCT plan_hash_value) > 1
+"""
+
+[[metric]]
 context = "oracle_tablespace_usage"
 labels = ["tablespace_name", "contents", "status"]
 metricsdesc = { used_percent = "Tablespace used percent", used_gb = "Tablespace used GB", free_gb = "Tablespace free GB", total_gb = "Tablespace total GB" }
