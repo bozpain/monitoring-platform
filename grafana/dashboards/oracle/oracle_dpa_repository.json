@@ -1,0 +1,249 @@
+{
+  "title": "07 - Oracle DPA Repository",
+  "uid": "oracle-dpa-repository",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "tags": ["oracle", "dpa", "postgres", "repository"],
+  "editable": true,
+  "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "db_unique_name",
+        "type": "query",
+        "datasource": { "type": "postgres", "uid": "DPARepository" },
+        "query": "SELECT db_unique_name FROM dpa.db_instance ORDER BY 1",
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "sql_id",
+        "type": "query",
+        "datasource": { "type": "postgres", "uid": "DPARepository" },
+        "query": "SELECT DISTINCT sql_id FROM dpa.v_sql_impact_1h WHERE db_unique_name = '$db_unique_name' ORDER BY 1",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": false
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "DPA Samples Last Hour",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*)::numeric AS samples FROM dpa.ash_sample WHERE db_unique_name = '$db_unique_name' AND sample_time >= now() - interval '1 hour'"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Advisories 24h",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*)::numeric AS advisories FROM dpa.dpa_advisory WHERE db_unique_name = '$db_unique_name' AND advisory_time >= now() - interval '24 hours'"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Plan Changes 24h",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*)::numeric AS plan_changes FROM dpa.v_plan_changes_24h WHERE db_unique_name = '$db_unique_name'"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Changes 7d",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*)::numeric AS changes FROM dpa.change_event WHERE db_unique_name = '$db_unique_name' AND event_time >= now() - interval '7 days'"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "SQL Impact Last Hour",
+      "gridPos": { "x": 0, "y": 4, "w": 24, "h": 9 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT sql_id, plan_hash_value, module, service_name, wait_class, event, active_seconds, impact_score, left(sample_sql_text, 240) AS sql_text_sample FROM dpa.v_sql_impact_1h WHERE db_unique_name = '$db_unique_name' AND ('$sql_id' = 'All' OR sql_id = '$sql_id') ORDER BY impact_score DESC LIMIT 50"
+        }
+      ],
+      "options": { "showHeader": true, "sortBy": [{ "displayName": "impact_score", "desc": true }] }
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Advisory Queue",
+      "gridPos": { "x": 0, "y": 13, "w": 12, "h": 9 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT advisory_time, severity, category, sql_id, plan_hash_value, module, signal, recommendation, impact_score FROM dpa.v_advisory_queue WHERE db_unique_name = '$db_unique_name' AND ('$sql_id' = 'All' OR sql_id = '$sql_id') ORDER BY impact_score DESC, advisory_time DESC LIMIT 50"
+        }
+      ],
+      "options": { "showHeader": true }
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Plan Change Candidates",
+      "gridPos": { "x": 12, "y": 13, "w": 12, "h": 9 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT sql_id, plan_count, first_seen, last_seen, plan_hash_values FROM dpa.v_plan_changes_24h WHERE db_unique_name = '$db_unique_name' AND ('$sql_id' = 'All' OR sql_id = '$sql_id') ORDER BY last_seen DESC LIMIT 50"
+        }
+      ],
+      "options": { "showHeader": true }
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "SQL Text Snapshots",
+      "gridPos": { "x": 0, "y": 22, "w": 24, "h": 9 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT snapshot_time, sql_id, plan_hash_value, parsing_schema_name, module, service_name, executions, elapsed_time_us, cpu_time_us, buffer_gets, disk_reads, rows_processed, parse_calls, left(sql_text, 800) AS sql_text FROM dpa.sql_snapshot WHERE db_unique_name = '$db_unique_name' AND ('$sql_id' = 'All' OR sql_id = '$sql_id') ORDER BY snapshot_time DESC, elapsed_time_us DESC LIMIT 50"
+        }
+      ],
+      "options": { "showHeader": true }
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Execution Plan Rows",
+      "gridPos": { "x": 0, "y": 31, "w": 24, "h": 9 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT snapshot_time, sql_id, plan_hash_value, child_number, id, parent_id, operation, options, object_owner, object_name, object_type, cardinality, cost, optimizer FROM dpa.sql_plan_snapshot WHERE db_unique_name = '$db_unique_name' AND ('$sql_id' = 'All' OR sql_id = '$sql_id') ORDER BY snapshot_time DESC, sql_id, plan_hash_value, child_number, id LIMIT 200"
+        }
+      ],
+      "options": { "showHeader": true }
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Recent Change Correlation",
+      "gridPos": { "x": 0, "y": 40, "w": 12, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT event_time, source, event_type, object_owner, object_name, object_type, details FROM dpa.v_recent_changes WHERE db_unique_name = '$db_unique_name' ORDER BY event_time DESC LIMIT 100"
+        }
+      ],
+      "options": { "showHeader": true }
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Hot Objects",
+      "gridPos": { "x": 12, "y": 40, "w": 12, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT sample_time, owner, object_name, object_type, metric_name, value FROM dpa.object_stats_snapshot WHERE db_unique_name = '$db_unique_name' AND sample_time >= now() - interval '6 hours' ORDER BY value DESC LIMIT 100"
+        }
+      ],
+      "options": { "showHeader": true }
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Seasonal Wait Baseline",
+      "gridPos": { "x": 0, "y": 48, "w": 12, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT iso_dow, hour_of_day, wait_class, event, avg_samples_per_hour FROM dpa.v_wait_seasonal_baseline WHERE db_unique_name = '$db_unique_name' ORDER BY avg_samples_per_hour DESC LIMIT 100"
+        }
+      ],
+      "options": { "showHeader": true }
+    },
+    {
+      "id": 13,
+      "type": "table",
+      "title": "Application SLO Weights",
+      "gridPos": { "x": 12, "y": 48, "w": 12, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT app, tier, db_unique_name, target_db_time_ms_per_call, business_weight, owner, notes FROM dpa.app_slo WHERE db_unique_name = '$db_unique_name' ORDER BY business_weight DESC, app"
+        }
+      ],
+      "options": { "showHeader": true }
+    },
+    {
+      "id": 14,
+      "type": "table",
+      "title": "Plan Diff Signatures",
+      "gridPos": { "x": 0, "y": 56, "w": 24, "h": 9 },
+      "datasource": { "type": "postgres", "uid": "DPARepository" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT sql_id, plan_hash_value, last_seen, plan_count, plan_signature FROM dpa.v_plan_diff_24h WHERE db_unique_name = '$db_unique_name' AND ('$sql_id' = 'All' OR sql_id = '$sql_id') ORDER BY sql_id, plan_hash_value LIMIT 50"
+        }
+      ],
+      "options": { "showHeader": true }
+    }
+  ]
+}

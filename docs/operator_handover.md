@@ -41,7 +41,7 @@ Because this platform is designed to work offline, every binary/RPM should be pi
 Recommended policy:
 
 - Use one approved version set per environment.
-- Store package files under `/monitoring/sources/tar` and `/monitoring/sources/rpm`.
+- Store package files under `/monitoring/sources/tar`, `/monitoring/sources/rpm`, and `/monitoring/sources/python`.
 - Store SHA256 checksums under `/monitoring/sources/checksum`.
 - Do not replace package files during a deployment without updating the manifest and checksum file.
 - On offline VMs, install base OS packages from the approved internal repository/media first, or run `INSTALL_PACKAGES=skip ./01_prepare_vm.sh` after verifying prerequisites.
@@ -63,6 +63,8 @@ Expected files:
 | Oracle exporter | `oracledb_exporter*.tar.gz` | `/monitoring/sources/tar` |
 | MSSQL exporter | `mssql_exporter*.tar.gz` | `/monitoring/sources/tar` |
 | Grafana | `grafana-*.rpm` | `/monitoring/sources/rpm` |
+| PostgreSQL server | `postgresql*.rpm` or approved OS repo package | `/monitoring/sources/rpm` |
+| DPA Python wheels | `oracledb*.whl`, `psycopg2*.whl` | `/monitoring/sources/python` |
 
 Create checksums on the staging machine:
 

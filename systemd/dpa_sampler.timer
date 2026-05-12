@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Oracle DPA Repository Sampler every minute
+
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=60s
+AccuracySec=10s
+Persistent=true
+Unit=dpa_sampler.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,292 @@
+-- PostgreSQL repository for DPA-style historical diagnostics.
+-- Loaded by 10_install_postgres_dpa.sh into database dpa_repository.
+
+CREATE SCHEMA IF NOT EXISTS dpa;
+
+CREATE TABLE IF NOT EXISTS dpa.db_instance (
+  db_unique_name text PRIMARY KEY,
+  db_name text,
+  instance_name text,
+  host_name text,
+  version text,
+  platform_name text,
+  first_seen timestamptz NOT NULL DEFAULT now(),
+  last_seen timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS dpa.ash_sample (
+  sample_time timestamptz NOT NULL,
+  db_unique_name text NOT NULL,
+  instance_name text,
+  sid integer,
+  serial_no integer,
+  username text,
+  status text,
+  session_state text,
+  sql_id text,
+  plan_hash_value numeric,
+  wait_class text,
+  event text,
+  module text,
+  action text,
+  service_name text,
+  machine text,
+  program text,
+  blocking_session integer,
+  sample_seconds numeric NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS dpa.sql_snapshot (
+  snapshot_time timestamptz NOT NULL,
+  db_unique_name text NOT NULL,
+  sql_id text NOT NULL,
+  plan_hash_value numeric,
+  parsing_schema_name text,
+  module text,
+  action text,
+  service_name text,
+  last_active_time timestamptz,
+  executions numeric,
+  elapsed_time_us numeric,
+  cpu_time_us numeric,
+  buffer_gets numeric,
+  disk_reads numeric,
+  rows_processed numeric,
+  parse_calls numeric,
+  version_count numeric,
+  sql_text text
+);
+
+CREATE TABLE IF NOT EXISTS dpa.sql_plan_snapshot (
+  snapshot_time timestamptz NOT NULL,
+  db_unique_name text NOT NULL,
+  sql_id text NOT NULL,
+  plan_hash_value numeric NOT NULL,
+  child_number integer,
+  id integer,
+  parent_id integer,
+  operation text,
+  options text,
+  object_owner text,
+  object_name text,
+  object_type text,
+  cardinality numeric,
+  bytes numeric,
+  cost numeric,
+  optimizer text
+);
+
+CREATE TABLE IF NOT EXISTS dpa.blocking_episode (
+  sample_time timestamptz NOT NULL,
+  db_unique_name text NOT NULL,
+  blocking_sid integer,
+  blocked_sid integer,
+  blocking_sql_id text,
+  blocked_sql_id text,
+  blocking_user text,
+  blocked_user text,
+  wait_class text,
+  event text,
+  module text,
+  machine text
+);
+
+CREATE TABLE IF NOT EXISTS dpa.change_event (
+  event_time timestamptz NOT NULL,
+  db_unique_name text NOT NULL,
+  source text NOT NULL,
+  event_type text NOT NULL,
+  object_owner text,
+  object_name text,
+  object_type text,
+  details text,
+  detected_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (db_unique_name, source, event_type, object_owner, object_name, event_time)
+);
+
+CREATE TABLE IF NOT EXISTS dpa.object_stats_snapshot (
+  sample_time timestamptz NOT NULL,
+  db_unique_name text NOT NULL,
+  owner text,
+  object_name text,
+  object_type text,
+  metric_name text NOT NULL,
+  value numeric
+);
+
+CREATE TABLE IF NOT EXISTS dpa.app_slo (
+  app text NOT NULL,
+  tier text NOT NULL,
+  db_unique_name text NOT NULL,
+  target_db_time_ms_per_call numeric NOT NULL DEFAULT 100,
+  business_weight numeric NOT NULL DEFAULT 1,
+  owner text,
+  notes text,
+  PRIMARY KEY (app, tier, db_unique_name)
+);
+
+CREATE TABLE IF NOT EXISTS dpa.dpa_advisory (
+  advisory_time timestamptz NOT NULL DEFAULT now(),
+  db_unique_name text NOT NULL,
+  severity text NOT NULL,
+  category text NOT NULL,
+  sql_id text,
+  plan_hash_value numeric,
+  module text,
+  service_name text,
+  signal text NOT NULL,
+  recommendation text NOT NULL,
+  impact_score numeric NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS ix_ash_sample_time ON dpa.ash_sample (sample_time DESC);
+CREATE INDEX IF NOT EXISTS ix_ash_sample_sql_time ON dpa.ash_sample (db_unique_name, sql_id, sample_time DESC);
+CREATE INDEX IF NOT EXISTS ix_ash_sample_wait_time ON dpa.ash_sample (db_unique_name, wait_class, event, sample_time DESC);
+CREATE INDEX IF NOT EXISTS ix_sql_snapshot_sql_time ON dpa.sql_snapshot (db_unique_name, sql_id, snapshot_time DESC);
+CREATE INDEX IF NOT EXISTS ix_sql_plan_snapshot_sql ON dpa.sql_plan_snapshot (db_unique_name, sql_id, plan_hash_value, snapshot_time DESC);
+CREATE INDEX IF NOT EXISTS ix_blocking_episode_time ON dpa.blocking_episode (db_unique_name, sample_time DESC);
+CREATE INDEX IF NOT EXISTS ix_change_event_time ON dpa.change_event (db_unique_name, event_time DESC);
+CREATE INDEX IF NOT EXISTS ix_advisory_time ON dpa.dpa_advisory (db_unique_name, advisory_time DESC);
+
+CREATE OR REPLACE VIEW dpa.v_sql_impact_1h AS
+SELECT
+  a.db_unique_name,
+  coalesce(nullif(a.sql_id, ''), 'UNKNOWN') AS sql_id,
+  a.plan_hash_value,
+  coalesce(nullif(a.module, ''), 'UNKNOWN') AS module,
+  coalesce(nullif(a.service_name, ''), 'UNKNOWN') AS service_name,
+  coalesce(nullif(a.wait_class, ''), 'UNKNOWN') AS wait_class,
+  coalesce(nullif(a.event, ''), 'UNKNOWN') AS event,
+  count(*) AS samples,
+  sum(a.sample_seconds) AS active_seconds,
+  max(s.sql_text) AS sample_sql_text,
+  round(sum(a.sample_seconds) * coalesce(max(slo.business_weight), 1), 2) AS impact_score
+FROM dpa.ash_sample a
+LEFT JOIN LATERAL (
+  SELECT ss.sql_text
+  FROM dpa.sql_snapshot ss
+  WHERE ss.db_unique_name = a.db_unique_name
+    AND ss.sql_id = a.sql_id
+  ORDER BY ss.snapshot_time DESC
+  LIMIT 1
+) s ON true
+LEFT JOIN dpa.app_slo slo
+  ON slo.db_unique_name = a.db_unique_name
+ AND lower(slo.app) = lower(coalesce(nullif(a.module, ''), slo.app))
+WHERE a.sample_time >= now() - interval '1 hour'
+GROUP BY a.db_unique_name, a.sql_id, a.plan_hash_value, a.module, a.service_name, a.wait_class, a.event;
+
+CREATE OR REPLACE VIEW dpa.v_plan_changes_24h AS
+SELECT
+  db_unique_name,
+  sql_id,
+  count(DISTINCT plan_hash_value) AS plan_count,
+  min(snapshot_time) AS first_seen,
+  max(snapshot_time) AS last_seen,
+  string_agg(DISTINCT plan_hash_value::text, ', ' ORDER BY plan_hash_value::text) AS plan_hash_values
+FROM dpa.sql_snapshot
+WHERE snapshot_time >= now() - interval '24 hours'
+  AND plan_hash_value IS NOT NULL
+GROUP BY db_unique_name, sql_id
+HAVING count(DISTINCT plan_hash_value) > 1;
+
+CREATE OR REPLACE VIEW dpa.v_plan_diff_24h AS
+WITH latest_plan_rows AS (
+  SELECT DISTINCT ON (db_unique_name, sql_id, plan_hash_value, child_number, id)
+    db_unique_name,
+    sql_id,
+    plan_hash_value,
+    child_number,
+    id,
+    parent_id,
+    operation,
+    options,
+    object_owner,
+    object_name,
+    cost,
+    cardinality,
+    snapshot_time
+  FROM dpa.sql_plan_snapshot
+  WHERE snapshot_time >= now() - interval '24 hours'
+  ORDER BY db_unique_name, sql_id, plan_hash_value, child_number, id, snapshot_time DESC
+),
+plan_signatures AS (
+  SELECT
+    db_unique_name,
+    sql_id,
+    plan_hash_value,
+    max(snapshot_time) AS last_seen,
+    string_agg(
+      concat_ws(
+        ' ',
+        lpad(id::text, 3, '0'),
+        coalesce(operation, ''),
+        coalesce(options, ''),
+        coalesce(object_owner, ''),
+        coalesce(object_name, ''),
+        'cost=' || coalesce(cost::text, '?'),
+        'card=' || coalesce(cardinality::text, '?')
+      ),
+      E'\n'
+      ORDER BY id
+    ) AS plan_signature
+  FROM latest_plan_rows
+  GROUP BY db_unique_name, sql_id, plan_hash_value
+)
+SELECT
+  ps.*,
+  count(*) OVER (PARTITION BY db_unique_name, sql_id) AS plan_count
+FROM plan_signatures ps
+WHERE EXISTS (
+  SELECT 1
+  FROM dpa.v_plan_changes_24h pc
+  WHERE pc.db_unique_name = ps.db_unique_name
+    AND pc.sql_id = ps.sql_id
+);
+
+CREATE OR REPLACE VIEW dpa.v_wait_seasonal_baseline AS
+SELECT
+  db_unique_name,
+  extract(isodow from sample_time)::integer AS iso_dow,
+  extract(hour from sample_time)::integer AS hour_of_day,
+  coalesce(wait_class, 'UNKNOWN') AS wait_class,
+  coalesce(event, 'UNKNOWN') AS event,
+  count(*)::numeric / greatest(count(DISTINCT date_trunc('hour', sample_time)), 1) AS avg_samples_per_hour
+FROM dpa.ash_sample
+WHERE sample_time >= now() - interval '35 days'
+GROUP BY db_unique_name, extract(isodow from sample_time), extract(hour from sample_time), wait_class, event;
+
+CREATE OR REPLACE VIEW dpa.v_recent_changes AS
+SELECT *
+FROM dpa.change_event
+WHERE event_time >= now() - interval '7 days'
+ORDER BY event_time DESC;
+
+CREATE OR REPLACE VIEW dpa.v_advisory_queue AS
+SELECT *
+FROM dpa.dpa_advisory
+WHERE advisory_time >= now() - interval '24 hours'
+ORDER BY impact_score DESC, advisory_time DESC;
+
+CREATE OR REPLACE FUNCTION dpa.purge_old_data(retention_days integer DEFAULT 35)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  DELETE FROM dpa.ash_sample WHERE sample_time < now() - make_interval(days => retention_days);
+  DELETE FROM dpa.sql_snapshot WHERE snapshot_time < now() - make_interval(days => retention_days);
+  DELETE FROM dpa.sql_plan_snapshot WHERE snapshot_time < now() - make_interval(days => retention_days);
+  DELETE FROM dpa.blocking_episode WHERE sample_time < now() - make_interval(days => retention_days);
+  DELETE FROM dpa.object_stats_snapshot WHERE sample_time < now() - make_interval(days => retention_days);
+  DELETE FROM dpa.dpa_advisory WHERE advisory_time < now() - make_interval(days => retention_days);
+  DELETE FROM dpa.change_event WHERE event_time < now() - make_interval(days => retention_days * 3);
+END;
+$$;
+
+GRANT USAGE ON SCHEMA dpa TO dpa_app, dpa_reader;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA dpa TO dpa_app;
+GRANT SELECT ON ALL TABLES IN SCHEMA dpa TO dpa_reader;
+GRANT SELECT ON ALL TABLES IN SCHEMA dpa TO dpa_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA dpa TO dpa_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA dpa GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO dpa_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA dpa GRANT SELECT ON TABLES TO dpa_reader;

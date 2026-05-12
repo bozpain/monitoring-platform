@@ -36,7 +36,7 @@ fi
 
 echo "[INFO] Creating directory structure..."
 
-mkdir -p "$BASE_DIR"/{prometheus/{bin,conf/alerts},victoriametrics/{bin,conf},grafana/{conf,dashboards},alertmanager/{bin,conf},exporters/{oracle,mssql,postgres,mongodb,node},config/targets,data/{prometheus,victoriametrics,alertmanager},logs/{prometheus,victoriametrics,grafana,alertmanager,exporters},sources/{rpm,tar,checksum}}
+mkdir -p "$BASE_DIR"/{prometheus/{bin,conf/alerts},victoriametrics/{bin,conf},grafana/{conf,dashboards},alertmanager/{bin,conf},dpa/{bin,conf,sql},exporters/{oracle,mssql,postgres,mongodb,node},config/targets,data/{prometheus,victoriametrics,alertmanager},logs/{prometheus,victoriametrics,grafana,alertmanager,exporters,dpa},sources/{rpm,tar,checksum,python}}
 
 echo "[INFO] Setting permissions..."
 
@@ -47,6 +47,7 @@ chmod 755 "$BASE_DIR/prometheus"
 chmod 755 "$BASE_DIR/victoriametrics"
 chmod 755 "$BASE_DIR/grafana"
 chmod 755 "$BASE_DIR/alertmanager"
+chmod 755 "$BASE_DIR/dpa"
 chmod 755 "$BASE_DIR/exporters"
 chmod 755 "$BASE_DIR/config"
 chmod 750 "$BASE_DIR/data"

@@ -8,3 +8,18 @@ datasources:
     url: http://localhost:8428
     isDefault: true
     editable: true
+
+  - name: DPA Repository
+    type: postgres
+    uid: DPARepository
+    access: proxy
+    url: localhost:5432
+    database: dpa_repository
+    user: dpa_reader
+    secureJsonData:
+      password: ${DPA_POSTGRES_PASSWORD}
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1200
+      timescaledb: false
+    editable: true

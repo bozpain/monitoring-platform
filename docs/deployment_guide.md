@@ -42,6 +42,8 @@ Single VM deployment memasang komponen berikut:
 | Node exporter | OS dan server metrics | `9100` |
 | Oracle exporter | Oracle DB metrics | `9161` |
 | MSSQL exporter | SQL Server metrics | `9182` |
+| PostgreSQL DPA Repository | Historical SQL/plan/mini-ASH drilldown | `5432` local |
+| DPA sampler | Oracle diagnostic sampler via systemd timer | n/a |
 | Grafana | Dashboard dan visualisasi | `3000` |
 
 Data flow:
@@ -51,6 +53,8 @@ Node/Oracle/MSSQL exporters -> Prometheus -> VictoriaMetrics -> Grafana
                                       |
                                       v
                                 Alertmanager
+
+Oracle target DB -> DPA sampler -> PostgreSQL DPA Repository -> Grafana
 ```
 
 Untuk ekspansi 3 VM, gunakan [deployment_guide_expand.md](deployment_guide_expand.md). Untuk handover operasional tambahan, gunakan [operator_handover.md](operator_handover.md).
@@ -80,6 +84,7 @@ Upload approved packages ke:
 ```text
 /monitoring/sources/tar
 /monitoring/sources/rpm
+/monitoring/sources/python
 /monitoring/sources/checksum
 ```
 
@@ -94,6 +99,8 @@ Expected file patterns:
 | Oracle exporter | `oracledb_exporter*.tar.gz` | `/monitoring/sources/tar` |
 | MSSQL exporter | `mssql_exporter*.tar.gz` | `/monitoring/sources/tar` |
 | Grafana | `grafana-*.rpm` | `/monitoring/sources/rpm` |
+| PostgreSQL server | `postgresql*.rpm` atau OS repo package | `/monitoring/sources/rpm` |
+| DPA Python wheels | `oracledb*.whl`, `psycopg2*.whl` | `/monitoring/sources/python` |
 
 Jika `/monitoring` belum ada, copy repo ke VM dan jalankan preparation step:
 
@@ -185,10 +192,11 @@ validate generated targets
 07_install_oracle_exporter.sh
 08_install_mssql_exporter.sh
 05_install_grafana.sh
+10_install_postgres_dpa.sh
 09_health_check.sh
 ```
 
-Urutan ini dependency-first. Alertmanager diinstall sebelum Prometheus supaya alerting endpoint sudah tersedia ketika Prometheus start. Grafana diinstall setelah VictoriaMetrics dan Prometheus karena datasource dan dashboard provisioning bergantung pada keduanya.
+Urutan ini dependency-first. Alertmanager diinstall sebelum Prometheus supaya alerting endpoint sudah tersedia ketika Prometheus start. Grafana diinstall setelah VictoriaMetrics dan Prometheus karena datasource dan dashboard provisioning bergantung pada keduanya. PostgreSQL DPA repository diinstall setelah Grafana supaya installer dapat menyuntikkan password `dpa_reader` ke runtime env Grafana dan restart Grafana.
 
 Oracle dan MSSQL exporter installer membuat service file dan credential template, tetapi tidak start exporter selama `DATA_SOURCE_NAME` masih berisi placeholder `CHANGE_ME`.
 
@@ -205,10 +213,13 @@ sudo ./04_install_node_exporter.sh
 sudo ./07_install_oracle_exporter.sh
 sudo ./08_install_mssql_exporter.sh
 sudo ./05_install_grafana.sh
+sudo ./10_install_postgres_dpa.sh
 sudo ./09_health_check.sh
 ```
 
 Node exporter start langsung karena tidak membutuhkan database credential. Oracle dan MSSQL exporters hanya start otomatis jika connection string sudah benar.
+
+`10_install_postgres_dpa.sh` membuat PostgreSQL local repository, user `dpa_app`, user `dpa_reader`, schema `dpa`, datasource Grafana `DPA Repository`, dan systemd timer `dpa_sampler.timer`. Timer tidak dipaksa start selama `/monitoring/dpa/conf/dpa_sampler.env` masih berisi placeholder Oracle `CHANGE_ME`.
 
 ## 8. Configure Database Exporters
 
@@ -228,6 +239,11 @@ GRANT SELECT ON sys.v_$sysmetric TO monitoring_user;
 GRANT SELECT ON sys.v_$sysstat TO monitoring_user;
 GRANT SELECT ON sys.v_$sql TO monitoring_user;
 GRANT SELECT ON sys.v_$sqlarea TO monitoring_user;
+GRANT SELECT ON sys.v_$sql_plan TO monitoring_user;
+GRANT SELECT ON sys.v_$database TO monitoring_user;
+GRANT SELECT ON sys.v_$instance TO monitoring_user;
+GRANT SELECT ON sys.v_$segment_statistics TO monitoring_user;
+GRANT SELECT ON sys.dba_objects TO monitoring_user;
 
 GRANT SELECT ON sys.dba_data_files TO monitoring_user;
 GRANT SELECT ON sys.dba_free_space TO monitoring_user;
@@ -250,6 +266,52 @@ Untuk multitenant deployment, buat user di PDB yang dimonitor kecuali DBA team m
 
 ```text
 /monitoring/exporters/oracle/oracle-metrics.toml
+```
+
+Tambahan `v_$sql_plan`, `v_$segment_statistics`, dan `dba_objects` dipakai oleh DPA repository sampler untuk plan history, hot object signals, dan change correlation. Jika grant tersebut tidak diizinkan, set modul opsional ini ke `false` di `/monitoring/dpa/conf/dpa_sampler.env`.
+
+### Oracle DPA Repository Sampler
+
+Edit credential:
+
+```bash
+sudo vi /monitoring/dpa/conf/dpa_sampler.env
+```
+
+Minimum:
+
+```bash
+DPA_ORACLE_USER=monitoring_user
+DPA_ORACLE_PASSWORD=CHANGE_ME_STRONG_PASSWORD
+DPA_ORACLE_DSN=db-host:1521/service_name
+DPA_DB_UNIQUE_NAME=oracle-prod-01
+```
+
+Optional controls:
+
+```bash
+DPA_SQL_TOP_N=50
+DPA_PLAN_TOP_N=20
+DPA_RETENTION_DAYS=35
+DPA_ENABLE_PLAN_SNAPSHOT=true
+DPA_ENABLE_OBJECT_STATS=true
+DPA_ENABLE_CHANGE_EVENTS=true
+DPA_ENABLE_ADVISORY=true
+```
+
+Start and validate:
+
+```bash
+sudo systemctl restart dpa_sampler.timer
+sudo systemctl start dpa_sampler.service
+sudo journalctl -u dpa_sampler.service -n 100 --no-pager
+sudo runuser -u postgres -- psql -d dpa_repository -c "SELECT count(*) FROM dpa.ash_sample;"
+```
+
+Grafana dashboard:
+
+```text
+Oracle / 07 - Oracle DPA Repository
 ```
 
 ### MSSQL Monitoring User Grants

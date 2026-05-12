@@ -34,6 +34,7 @@ Semua instruksi teknis deployment, tuning, credential exporter, firewall, valida
 | Metrics collection | Node exporter, Oracle exporter, MSSQL exporter | Metrik server dan database dikumpulkan dari target internal |
 | Scrape and rules | Prometheus | Service discovery, scrape, recording rules, alert rules |
 | Long retention | VictoriaMetrics | Penyimpanan metrik jangka panjang dengan endpoint Prometheus-compatible |
+| DPA repository | PostgreSQL local, DPA sampler | Mini-ASH, SQL text, plan history, advisory, dan change correlation |
 | Visualization | Grafana | Dashboard fleet, node, Oracle, dan MSSQL |
 | Notification | Alertmanager | Routing alert, grouping, repeat interval, dan email notification |
 | Automation | Shell installer, inventory generator, systemd units | Deployment repeatable dari repository root |
@@ -45,8 +46,9 @@ Alur singkat:
 1. Exporter membuka endpoint metrics untuk server, Oracle, dan MSSQL.
 2. Prometheus membaca target dari file service discovery yang dihasilkan dari inventory.
 3. Prometheus mengirim data jangka panjang ke VictoriaMetrics.
-4. Grafana membaca datasource dari VictoriaMetrics.
-5. Alert rules di Prometheus diteruskan ke Alertmanager.
+4. DPA sampler menulis SQL detail dan mini-ASH ke PostgreSQL lokal.
+5. Grafana membaca datasource dari VictoriaMetrics dan DPA Repository.
+6. Alert rules di Prometheus diteruskan ke Alertmanager.
 
 ## Highlight
 
@@ -58,6 +60,8 @@ Alur singkat:
 | Grafana provisioning | Tersedia |
 | Prometheus alert rules | Tersedia |
 | DB exporter credential templates | Tersedia |
+| PostgreSQL DPA repository | Tersedia |
+| SQL text/plan drilldown | Tersedia |
 | Health check script | Tersedia |
 | Operator handover checklist | Tersedia |
 
@@ -69,6 +73,7 @@ Alur singkat:
 | [Operator Handover](docs/operator_handover.md) | DB grants, manifest offline package, firewall, SELinux, dan validasi metrik |
 | [Deployment Guide Expand](docs/deployment_guide_expand.md) | Panduan ekspansi 3 VM untuk memisahkan control plane, storage, dan exporter node |
 | [DPA Metric Catalog](docs/dpa_metric_catalog.md) | Coverage metrik DPA-style untuk node, Oracle, dan MSSQL |
+| [Oracle DPA Repository](docs/dpa_repository_design.md) | PostgreSQL repository, sampler, SQL drilldown, plan history, advisory, dan SLO weighting |
 | [Alert Catalog](docs/alert_catalog.md) | Threshold default dan arti operasional alert |
 | [Offline Manifest Template](docs/offline_package_manifest.example.csv) | Template versi package dan checksum yang disetujui |
 
@@ -77,15 +82,17 @@ Alur singkat:
 | Path | Fungsi |
 | --- | --- |
 | `deploy_all.sh` | Orkestrasi deployment end-to-end |
-| `01_prepare_vm.sh` sampai `09_health_check.sh` | Installer per tahap dan health check |
+| `01_prepare_vm.sh` sampai `10_install_postgres_dpa.sh` | Installer per tahap, DPA repository, dan health check |
 | `inventory/targets.csv` | Source inventory host yang dimonitor |
 | `scripts/generate_targets.py` | Generator target Prometheus `file_sd` |
 | `config/prometheus.yml` | Scrape config, alerting, dan remote write |
 | `config/alerts/` | Recording rules dan alert rules |
+| `config/dpa/` | PostgreSQL DPA schema, sampler env, dan Python requirements |
 | `config/targets/` | Output target Prometheus hasil generator |
 | `config/*/*.env.example` | Template runtime tuning per service |
 | `grafana/provisioning/` | Datasource dan dashboard provisioning |
 | `grafana/dashboards/` | Dashboard JSON untuk fleet, node, Oracle, dan MSSQL |
+| `scripts/dpa_sampler.py` | Mini-ASH, SQL snapshot, plan snapshot, blocking, advisory sampler |
 | `systemd/` | Unit service yang diinstall ke server |
 | `docs/images/` | Diagram arsitektur dan aset dokumentasi |
 

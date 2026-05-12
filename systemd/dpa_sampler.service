@@ -1,0 +1,24 @@
+[Unit]
+Description=Oracle DPA Repository Sampler
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=monitoring
+Group=monitoring
+EnvironmentFile=/monitoring/dpa/conf/dpa_sampler.env
+WorkingDirectory=/monitoring/dpa
+ExecStart=/usr/bin/python3 /monitoring/dpa/bin/dpa_sampler.py --once
+
+StandardOutput=append:/monitoring/logs/dpa/dpa_sampler.log
+StandardError=append:/monitoring/logs/dpa/dpa_sampler-error.log
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/monitoring/logs/dpa
+
+[Install]
+WantedBy=multi-user.target

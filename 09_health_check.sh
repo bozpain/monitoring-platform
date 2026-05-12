@@ -156,9 +156,11 @@ check_service_required alertmanager
 check_service_required prometheus
 check_service_required node_exporter
 check_service_required grafana-server
+check_service_optional postgresql "$BASE_DIR/dpa/conf/dpa_sampler.env" "DISABLE_POSTGRES_CHECK_PLACEHOLDER"
 
 check_service_optional oracle_exporter "$BASE_DIR/exporters/oracle/oracle_exporter.env" "CHANGE_ME"
 check_service_optional mssql_exporter "$BASE_DIR/exporters/mssql/mssql_exporter.env" "CHANGE_ME"
+check_service_optional dpa_sampler.timer "$BASE_DIR/dpa/conf/dpa_sampler.env" "CHANGE_ME"
 
 echo ""
 echo "[INFO] Checking required ports..."
@@ -168,6 +170,12 @@ check_port 9093 "Alertmanager"
 check_port 9090 "Prometheus"
 check_port 9100 "Node Exporter"
 check_port 3000 "Grafana"
+
+if systemctl is-active --quiet postgresql; then
+  check_port 5432 "PostgreSQL DPA Repository"
+else
+  mark_warn "PostgreSQL port skipped because service is not running"
+fi
 
 echo ""
 echo "[INFO] Checking optional exporter ports..."
@@ -195,6 +203,19 @@ check_http_required "Grafana health" "http://localhost:3000/api/health"
 
 check_http_optional "Grafana metrics" "http://localhost:3000/metrics"
 check_http_optional "Alertmanager status API" "http://localhost:9093/api/v2/status"
+
+echo ""
+echo "[INFO] Checking DPA repository..."
+
+if command -v psql >/dev/null 2>&1 && systemctl is-active --quiet postgresql; then
+  if runuser -u postgres -- psql -d dpa_repository -c "SELECT count(*) FROM dpa.db_instance;" >/dev/null 2>&1; then
+    mark_ok "DPA PostgreSQL repository schema is reachable"
+  else
+    mark_warn "DPA PostgreSQL repository schema is not ready yet"
+  fi
+else
+  mark_warn "psql or postgresql service not available; skipping DPA repository query"
+fi
 
 if systemctl is-active --quiet oracle_exporter; then
   check_http_optional "Oracle exporter metrics" "http://localhost:9161/metrics"

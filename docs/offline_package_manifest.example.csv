@@ -6,3 +6,7 @@ node_exporter,TBD,node_exporter-<version>.linux-amd64.tar.gz,TBD,TBD,TBD,TBD,Req
 oracledb_exporter,TBD,oracledb_exporter-<version>.linux-amd64.tar.gz,TBD,TBD,TBD,TBD,Required by 07_install_oracle_exporter.sh
 mssql_exporter,TBD,mssql_exporter-<version>.linux-amd64.tar.gz,TBD,TBD,TBD,TBD,Required by 08_install_mssql_exporter.sh
 grafana,TBD,grafana-<version>.x86_64.rpm,TBD,TBD,TBD,TBD,Required by 05_install_grafana.sh
+postgresql-server,TBD,postgresql-server-<version>.x86_64.rpm,TBD,TBD,TBD,TBD,Required by 10_install_postgres_dpa.sh when OS repo is not available
+postgresql-contrib,TBD,postgresql-contrib-<version>.x86_64.rpm,TBD,TBD,TBD,TBD,Recommended for PostgreSQL maintenance tools
+python-oracledb,TBD,oracledb-<version>-py3-none-any.whl,TBD,TBD,TBD,TBD,Required by scripts/dpa_sampler.py
+python-psycopg2,TBD,psycopg2_binary-<version>-*.whl,TBD,TBD,TBD,TBD,Required by scripts/dpa_sampler.py

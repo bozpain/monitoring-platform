@@ -54,6 +54,7 @@ The Oracle layer now separates three levels of SQL visibility:
 | Prometheus metrics | `oracle_sql_workload_delta_*`, recording rules under `oracle:sql_*` | Recent SQL workload rate, plan hash, schema, module, action, and service |
 | Session attribution | `oracle_session_wait_sql`, `oracle_blocking_sql` | Tie active waits and blocking directly to SQL IDs and application context |
 | SQL text snapshot | `config/oracle/oracle-sql-text-snapshot.sql` | Optional drilldown store for SQL text without putting SQL text in Prometheus labels |
+| DPA repository | `dpa.ash_sample`, `dpa.sql_snapshot`, `dpa.sql_plan_snapshot`, `dpa.dpa_advisory` | Local PostgreSQL historical diagnostics for SQL text, plans, wait samples, and tuning advisories |
 
 The old cumulative `oracle_top_sql_*_value` metrics remain available for compatibility, but dashboards should prefer the `rate5m` recording rules because they show what is expensive now instead of what has accumulated in the cursor cache over time.
 
@@ -96,3 +97,18 @@ The platform now covers the practical DPA investigation path:
 6. Validate capacity pressure in tablespace/data/log/TempDB/FRA.
 
 Advanced proprietary advisors are not cloned here. The platform now approximates the practical behavior with Prometheus baselines, plan-change detection, wait-to-SQL attribution, bounded top-SQL metrics, Grafana advisory panels, and optional SQL text snapshots.
+
+## PostgreSQL DPA Repository
+
+For data that is too detailed or too high-cardinality for Prometheus, the platform includes a local PostgreSQL repository installed by `10_install_postgres_dpa.sh`.
+
+| Capability | Repository object | Purpose |
+| --- | --- | --- |
+| Historical mini-ASH | `dpa.ash_sample` | Reconstruct active sessions, waits, modules, machines, and blockers over time |
+| SQL detail | `dpa.sql_snapshot` | Store SQL text and workload counters for drilldown |
+| Plan history and diff inputs | `dpa.sql_plan_snapshot`, `dpa.v_plan_changes_24h`, `dpa.v_plan_diff_24h` | Compare plan hashes, operations, objects, cost, and cardinality across time |
+| Change correlation | `dpa.change_event`, `dpa.v_recent_changes` | Correlate DDL/object changes with performance shifts |
+| Table/index advisor inputs | `dpa.object_stats_snapshot` | Identify hot objects and contention-prone segments |
+| Impact scoring | `dpa.v_sql_impact_1h`, `dpa.app_slo` | Prioritize SQL by active time and business weight |
+| Runbook/advisory queue | `dpa.dpa_advisory`, `dpa.v_advisory_queue` | Show diagnosis hints and suggested next actions in Grafana |
+| Seasonal baseline | `dpa.v_wait_seasonal_baseline` | Compare waits by day-of-week and hour-of-day patterns |
