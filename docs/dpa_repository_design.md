@@ -78,6 +78,22 @@ GRANT SELECT ON dba_objects TO monitoring_user;
 
 If security policy does not allow `SELECT_CATALOG_ROLE`, grant only the listed views. Optional sampler modules fail soft for object stats, plan snapshots, and change events when privileges are missing.
 
+## SQL Text Security
+
+The DPA repository stores SQL text in `dpa.sql_snapshot`. In well-bound applications this is usually structural SQL, but applications that concatenate literals can expose sensitive values such as customer IDs, account numbers, email addresses, tokens, or free-form search text.
+
+Before enabling `oracle_dpa=yes` for a database:
+
+| Check | Required action |
+| --- | --- |
+| SQL text collection approved | Confirm DBA/app/security owner approval |
+| Sensitive literal risk reviewed | Check whether the application uses bind variables |
+| Repository access restricted | Keep `dpa_reader` limited to Grafana and approved operators |
+| Retention approved | Align `DPA_RETENTION_DAYS` with data handling policy |
+| Incident export policy defined | Do not paste SQL text with sensitive literals into tickets unless allowed |
+
+If SQL text is not approved, keep the database exporter-only or disable DPA for that target.
+
 Least-privilege split:
 
 | Module | Required grants |

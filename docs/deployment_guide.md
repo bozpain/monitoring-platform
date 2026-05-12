@@ -178,7 +178,7 @@ Review generated target ports:
 Untuk target dengan `oracle_dpa=yes`, copy template env ke VM setelah install DPA repository:
 
 ```bash
-sudo cp config/dpa/targets/<target>.env.example /monitoring/dpa/conf/<target>.env
+sudo scripts/install_dpa_target.sh <target>
 sudo vi /monitoring/dpa/conf/<target>.env
 sudo systemctl enable --now dpa_sampler@<target>.timer
 ```

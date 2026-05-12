@@ -87,6 +87,7 @@ Alur singkat:
 | `01_prepare_vm.sh` sampai `10_install_postgres_dpa.sh` | Installer per tahap, DPA repository, dan health check |
 | `inventory/targets.csv` | Source inventory host yang dimonitor |
 | `scripts/generate_targets.py` | Generator target Prometheus `file_sd` |
+| `scripts/install_dpa_target.sh` | Helper onboarding target Oracle DPA dari template inventory |
 | `config/prometheus.yml` | Scrape config, alerting, dan remote write |
 | `config/alerts/` | Recording rules dan alert rules |
 | `config/dpa/` | PostgreSQL DPA schema, sampler env, dan Python requirements |

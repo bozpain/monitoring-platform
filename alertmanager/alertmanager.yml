@@ -47,6 +47,9 @@ receivers:
           <b>Description:</b><br>
           {{ range .Alerts }}
             - {{ .Annotations.summary }}<br>
+            {{ if .Annotations.runbook_url }}
+              Runbook: {{ .Annotations.runbook_url }}<br>
+            {{ end }}
           {{ end }}
 
   - name: "dba-critical-email"
@@ -67,6 +70,9 @@ receivers:
             <b>{{ .Labels.alertname }}</b> on {{ .Labels.instance }}<br>
             {{ .Annotations.summary }}<br>
             {{ .Annotations.description }}<br><br>
+            {{ if .Annotations.runbook_url }}
+              <b>Runbook:</b> {{ .Annotations.runbook_url }}<br><br>
+            {{ end }}
           {{ end }}
 
   - name: "dba-warning-email"
@@ -87,6 +93,9 @@ receivers:
             <b>{{ .Labels.alertname }}</b> on {{ .Labels.instance }}<br>
             {{ .Annotations.summary }}<br>
             {{ .Annotations.description }}<br><br>
+            {{ if .Annotations.runbook_url }}
+              <b>Runbook:</b> {{ .Annotations.runbook_url }}<br><br>
+            {{ end }}
           {{ end }}
 
 inhibit_rules:

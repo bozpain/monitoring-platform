@@ -83,7 +83,7 @@ config/dpa/targets/<host>.env.example
 Install the generated template on the monitoring VM:
 
 ```bash
-sudo cp config/dpa/targets/db-vm-01.env.example /monitoring/dpa/conf/db-vm-01.env
+sudo scripts/install_dpa_target.sh db-vm-01
 sudo vi /monitoring/dpa/conf/db-vm-01.env
 sudo systemctl enable --now dpa_sampler@db-vm-01.timer
 ```
@@ -101,3 +101,13 @@ Before enabling DPA for a database:
 | Retention is agreed | Default is 35 days |
 
 If any item is not approved, keep the database on exporter-only until the gap is resolved.
+
+## SQL Text Handling
+
+DPA-enabled databases store SQL text in PostgreSQL. Treat that repository as sensitive operational data:
+
+- Prefer DPA only for approved production or high-value troubleshooting targets.
+- Verify applications use bind variables where possible.
+- Restrict Grafana/DPA Repository access to approved DBA and operator groups.
+- Avoid pasting raw SQL text into tickets when it contains sensitive literals.
+- Use exporter-only mode when SQL text collection is not approved.

@@ -8,6 +8,18 @@
   "tags": ["oracle", "dpa", "postgres", "repository"],
   "editable": true,
   "graphTooltip": 1,
+  "links": [
+    {
+      "title": "Oracle Runbooks",
+      "type": "link",
+      "url": "docs/runbooks/oracle/README.md"
+    },
+    {
+      "title": "Oracle Monitoring Tiers",
+      "type": "link",
+      "url": "docs/oracle_monitoring_tiers.md"
+    }
+  ],
   "templating": {
     "list": [
       {
