@@ -42,7 +42,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "count(oracle_tablespace_usage_used_percent{instance=~\"$instance\"} > 90)"
+          "expr": "count(oracledb_oracle_tablespace_usage_used_percent{instance=~\"$instance\"} > 90)"
         }
       ],
       "fieldConfig": {
@@ -71,7 +71,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "count(oracle_tablespace_usage_used_percent{instance=~\"$instance\"} > 80)"
+          "expr": "count(oracledb_oracle_tablespace_usage_used_percent{instance=~\"$instance\"} > 80)"
         }
       ],
       "fieldConfig": {
@@ -100,7 +100,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "count(oracle_temp_usage_used_percent{instance=~\"$instance\"} > 80)"
+          "expr": "count(oracledb_oracle_temp_usage_used_percent{instance=~\"$instance\"} > 80)"
         }
       ],
       "fieldConfig": {
@@ -129,7 +129,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sum(oracle_fra_limit_value{instance=~\"$instance\"})"
+          "expr": "sum(oracledb_oracle_fra_limit_value{instance=~\"$instance\"})"
         }
       ],
       "fieldConfig": {
@@ -151,7 +151,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sort_desc(oracle_tablespace_usage_used_percent{instance=~\"$instance\"})",
+          "expr": "sort_desc(oracledb_oracle_tablespace_usage_used_percent{instance=~\"$instance\"})",
           "legendFormat": "{{instance}} {{tablespace_name}}",
           "format": "table",
           "instant": true
@@ -169,7 +169,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "topk(15, sort_desc(oracle_tablespace_usage_used_percent{instance=~\"$instance\"}))",
+          "expr": "topk(15, sort_desc(oracledb_oracle_tablespace_usage_used_percent{instance=~\"$instance\"}))",
           "legendFormat": "{{instance}} {{tablespace_name}}",
           "format": "table",
           "instant": true
@@ -189,7 +189,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "topk(15, sort_desc(oracle_tablespace_usage_free_gb{instance=~\"$instance\"}))",
+          "expr": "topk(15, sort_desc(oracledb_oracle_tablespace_usage_free_gb{instance=~\"$instance\"}))",
           "legendFormat": "{{instance}} {{tablespace_name}}",
           "format": "table",
           "instant": true
@@ -214,7 +214,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "oracle_tablespace_usage_used_percent{instance=~\"$instance\"}",
+          "expr": "oracledb_oracle_tablespace_usage_used_percent{instance=~\"$instance\"}",
           "legendFormat": "{{instance}} {{tablespace_name}}"
         }
       ],
@@ -236,7 +236,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sort_desc(oracle_temp_usage_used_percent{instance=~\"$instance\"})",
+          "expr": "sort_desc(oracledb_oracle_temp_usage_used_percent{instance=~\"$instance\"})",
           "legendFormat": "{{instance}} {{tablespace_name}}",
           "format": "table",
           "instant": true
@@ -259,7 +259,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sort_desc(oracle_fra_usage_used_percent{instance=~\"$instance\"})",
+          "expr": "sort_desc(oracledb_oracle_fra_usage_used_percent{instance=~\"$instance\"})",
           "legendFormat": "{{instance}} {{file_type}}",
           "format": "table",
           "instant": true
@@ -282,7 +282,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "oracle_temp_usage_used_percent{instance=~\"$instance\"}",
+          "expr": "oracledb_oracle_temp_usage_used_percent{instance=~\"$instance\"}",
           "legendFormat": "{{instance}} {{tablespace_name}}"
         }
       ],
@@ -304,7 +304,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "oracle_fra_usage_used_percent{instance=~\"$instance\"}",
+          "expr": "oracledb_oracle_fra_usage_used_percent{instance=~\"$instance\"}",
           "legendFormat": "{{instance}} {{file_type}}"
         }
       ],

@@ -252,7 +252,7 @@ def snapshot_sql(ora_conn, pg_conn, identity: dict[str, Any], top_n: int) -> int
             disk_reads,
             rows_processed,
             parse_calls,
-            version_count,
+            1 AS version_count,
             DBMS_LOB.SUBSTR(sql_fulltext, 4000, 1) AS sql_text
           FROM gv$sql q
           LEFT JOIN v$containers c ON q.con_id = c.con_id

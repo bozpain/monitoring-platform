@@ -76,7 +76,7 @@ groups:
           description: "Archive usage {{ $value }}%"
 
       - alert: OracleTempTablespaceHighUsage
-        expr: oracle_temp_usage_used_percent{job="oracle"} >= 80 and oracle_temp_usage_used_percent{job="oracle"} < 90
+        expr: oracledb_oracle_temp_usage_used_percent{job="oracle"} >= 80 and oracledb_oracle_temp_usage_used_percent{job="oracle"} < 90
         for: 5m
         labels:
           severity: warning
@@ -87,7 +87,7 @@ groups:
           description: "{{ $labels.tablespace_name }} temp usage {{ $value }}%"
 
       - alert: OracleTempTablespaceCriticalUsage
-        expr: oracle_temp_usage_used_percent{job="oracle"} >= 90
+        expr: oracledb_oracle_temp_usage_used_percent{job="oracle"} >= 90
         for: 5m
         labels:
           severity: critical
@@ -174,7 +174,7 @@ groups:
       - alert: OracleHighWaitClassActivity
         expr: |
           sum by (instance, wait_class, app, tier, owner) (
-            oracle_ash_like_wait_class_value{job="oracle", wait_class!~"Idle|UNKNOWN"}
+            oracledb_oracle_ash_like_wait_class_value{job="oracle", wait_class!~"Idle|UNKNOWN"}
           ) >= 10
         for: 10m
         labels:
@@ -189,7 +189,7 @@ groups:
       - alert: OracleHighDBTime
         expr: |
           sum by (instance, app, tier, owner) (
-            oracle_db_time_per_sec_value{job="oracle"}
+            oracledb_oracle_db_time_per_sec_value{job="oracle"}
           ) >= 60
         for: 10m
         labels:
@@ -203,9 +203,9 @@ groups:
 
       - alert: OracleDBTimeAnomaly
         expr: |
-          oracle_db_time_per_sec_value{job="oracle"} > 5
+          oracledb_oracle_db_time_per_sec_value{job="oracle"} > 5
           and
-          oracle_db_time_per_sec_value{job="oracle"} > 2 * oracle:db_time_per_sec:avg_7d{job="oracle"}
+          oracledb_oracle_db_time_per_sec_value{job="oracle"} > 2 * oracle:db_time_per_sec:avg_7d{job="oracle"}
         for: 10m
         labels:
           severity: warning
@@ -218,9 +218,9 @@ groups:
 
       - alert: OracleWaitClassAnomaly
         expr: |
-          oracle_ash_like_wait_class_value{job="oracle", wait_class!~"Idle|UNKNOWN"} >= 5
+          oracledb_oracle_ash_like_wait_class_value{job="oracle", wait_class!~"Idle|UNKNOWN"} >= 5
           and
-          oracle_ash_like_wait_class_value{job="oracle", wait_class!~"Idle|UNKNOWN"} > 2 * oracle:wait_class_active_sessions:avg_7d{job="oracle"}
+          oracledb_oracle_ash_like_wait_class_value{job="oracle", wait_class!~"Idle|UNKNOWN"} > 2 * oracle:wait_class_active_sessions:avg_7d{job="oracle"}
         for: 10m
         labels:
           severity: warning

@@ -3,28 +3,28 @@ groups:
     interval: 30s
     rules:
       - record: oracle_up
-        expr: oracle_up_value
+        expr: oracledb_oracle_up_value
 
       - record: oracle_tablespace_used_percent
-        expr: oracle_tablespace_usage_used_percent
+        expr: oracledb_oracle_tablespace_usage_used_percent
       - record: oracle_archivelog_destination_used_percent
-        expr: oracle_fra_usage_used_percent{file_type="ARCHIVED LOG"}
+        expr: oracledb_oracle_fra_usage_used_percent{file_type="ARCHIVED LOG"}
       - record: oracle_sessions_used_percent
-        expr: oracle_sessions_used_percent_value
+        expr: oracledb_oracle_sessions_used_percent_value
 
       - record: oracle_blocking_sessions
-        expr: oracle_sessions_blocked_value
+        expr: oracledb_oracle_sessions_blocked_value
       - record: oracle_long_running_queries
-        expr: count without (sid, serial, username, program, machine, status, event, sql_id) (oracle_long_running_sessions_value)
+        expr: count without (sid, serial, username, program, machine, status, event, sql_id) (oracledb_oracle_long_running_sessions_value)
       - record: oracle_deadlocks_total
-        expr: oracle_deadlocks_total_value
+        expr: oracledb_oracle_deadlocks_total_value
 
       - record: oracle:db_time_per_sec:avg_7d
-        expr: avg_over_time(oracle_db_time_per_sec_value{job="oracle"}[7d])
+        expr: avg_over_time(oracledb_oracle_db_time_per_sec_value{job="oracle"}[7d])
       - record: oracle:cpu_usage_per_sec:avg_7d
-        expr: avg_over_time(oracle_cpu_usage_per_sec_value{job="oracle"}[7d])
+        expr: avg_over_time(oracledb_oracle_cpu_usage_per_sec_value{job="oracle"}[7d])
       - record: oracle:wait_class_active_sessions:avg_7d
-        expr: avg_over_time(oracle_ash_like_wait_class_value{job="oracle", wait_class!~"Idle|UNKNOWN"}[7d])
+        expr: avg_over_time(oracledb_oracle_ash_like_wait_class_value{job="oracle", wait_class!~"Idle|UNKNOWN"}[7d])
 
       - record: oracle:sql_elapsed_seconds_per_sec:rate5m
         expr: |
@@ -88,12 +88,12 @@ groups:
       - record: oracle:active_sessions_by_sql_wait
         expr: |
           sum by (instance, sql_id, plan_hash_value, wait_class, event, username, module, action, service_name, machine, app, tier, owner) (
-            oracle_session_wait_sql_value{job="oracle"}
+            oracledb_oracle_session_wait_sql_value{job="oracle"}
           )
       - record: oracle:blocking_by_sql
         expr: |
           sum by (instance, blocking_sid, blocking_sql_id, blocked_sql_id, blocking_user, blocked_user, wait_class, event, app, tier, owner) (
-            oracle_blocking_sql_value{job="oracle"}
+            oracledb_oracle_blocking_sql_value{job="oracle"}
           )
       - record: oracle:sql_plan_count
-        expr: oracle_sql_plan_count_value{job="oracle"}
+        expr: oracledb_oracle_sql_plan_count_value{job="oracle"}

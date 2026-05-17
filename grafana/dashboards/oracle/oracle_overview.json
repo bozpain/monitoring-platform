@@ -115,7 +115,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sum(oracle_sessions_active_value{instance=~\"$instance\"})"
+          "expr": "sum(oracledb_oracle_sessions_active_value{instance=~\"$instance\"})"
         }
       ],
       "fieldConfig": {
@@ -144,7 +144,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sum(oracle_sessions_blocked_value{instance=~\"$instance\"})"
+          "expr": "sum(oracledb_oracle_sessions_blocked_value{instance=~\"$instance\"})"
         }
       ],
       "fieldConfig": {
@@ -173,7 +173,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sum(oracle_db_time_per_sec_value{instance=~\"$instance\"})"
+          "expr": "sum(oracledb_oracle_db_time_per_sec_value{instance=~\"$instance\"})"
         }
       ],
       "fieldConfig": {
@@ -203,7 +203,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sum by (instance) (oracle_sessions_active_value{instance=~\"$instance\"})",
+          "expr": "sum by (instance) (oracledb_oracle_sessions_active_value{instance=~\"$instance\"})",
           "legendFormat": "{{instance}}"
         }
       ],
@@ -220,11 +220,11 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sum(oracle_db_time_per_sec_value{instance=~\"$instance\"})",
+          "expr": "sum(oracledb_oracle_db_time_per_sec_value{instance=~\"$instance\"})",
           "legendFormat": "DB Time / Sec"
         },
         {
-          "expr": "sum(oracle_cpu_usage_per_sec_value{instance=~\"$instance\"})",
+          "expr": "sum(oracledb_oracle_cpu_usage_per_sec_value{instance=~\"$instance\"})",
           "legendFormat": "CPU Usage / Sec"
         }
       ],
@@ -259,7 +259,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "topk(10, sum by (instance) (oracle_sessions_active_value{instance=~\"$instance\"}))",
+          "expr": "topk(10, sum by (instance) (oracledb_oracle_sessions_active_value{instance=~\"$instance\"}))",
           "legendFormat": "{{instance}}",
           "format": "table",
           "instant": true
@@ -277,7 +277,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "topk(10, sum by (instance) (oracle_db_time_per_sec_value{instance=~\"$instance\"}))",
+          "expr": "topk(10, sum by (instance) (oracledb_oracle_db_time_per_sec_value{instance=~\"$instance\"}))",
           "legendFormat": "{{instance}}",
           "format": "table",
           "instant": true
@@ -295,7 +295,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sort_desc(sum by (wait_class) (oracle_ash_like_wait_class_value{instance=~\"$instance\"}))",
+          "expr": "sort_desc(sum by (wait_class) (oracledb_oracle_ash_like_wait_class_value{instance=~\"$instance\"}))",
           "legendFormat": "{{wait_class}}",
           "format": "table",
           "instant": true
@@ -315,7 +315,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "topk(10, sort_desc(sum by (event) (oracle_ash_like_wait_event_value{instance=~\"$instance\"})))",
+          "expr": "topk(10, sort_desc(sum by (event) (oracledb_oracle_ash_like_wait_event_value{instance=~\"$instance\"})))",
           "legendFormat": "{{event}}",
           "format": "table",
           "instant": true
@@ -335,7 +335,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sort_desc(oracle_blocking_tree_value{instance=~\"$instance\"})",
+          "expr": "sort_desc(oracledb_oracle_blocking_tree_value{instance=~\"$instance\"})",
           "legendFormat": "blocked={{blocked_sid}} blocker={{blocking_sid}} user={{blocked_user}} event={{event}}",
           "format": "table",
           "instant": true

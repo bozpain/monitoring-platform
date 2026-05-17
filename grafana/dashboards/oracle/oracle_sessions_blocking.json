@@ -42,7 +42,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sum(oracle_sessions_total_value{instance=~\"$instance\"})"
+          "expr": "sum(oracledb_oracle_sessions_total_value{instance=~\"$instance\"})"
         }
       ],
       "options": {
@@ -59,7 +59,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sum(oracle_sessions_active_value{instance=~\"$instance\"})"
+          "expr": "sum(oracledb_oracle_sessions_active_value{instance=~\"$instance\"})"
         }
       ],
       "fieldConfig": {
@@ -88,7 +88,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sum(oracle_sessions_blocked_value{instance=~\"$instance\"})"
+          "expr": "sum(oracledb_oracle_sessions_blocked_value{instance=~\"$instance\"})"
         }
       ],
       "fieldConfig": {
@@ -117,7 +117,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "count(oracle_long_running_sessions_value{instance=~\"$instance\"})"
+          "expr": "count(oracledb_oracle_long_running_sessions_value{instance=~\"$instance\"})"
         }
       ],
       "fieldConfig": {
@@ -146,11 +146,11 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sum by (instance) (oracle_sessions_total_value{instance=~\"$instance\"})",
+          "expr": "sum by (instance) (oracledb_oracle_sessions_total_value{instance=~\"$instance\"})",
           "legendFormat": "{{instance}} total"
         },
         {
-          "expr": "sum by (instance) (oracle_sessions_active_value{instance=~\"$instance\"})",
+          "expr": "sum by (instance) (oracledb_oracle_sessions_active_value{instance=~\"$instance\"})",
           "legendFormat": "{{instance}} active"
         }
       ],
@@ -167,7 +167,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sum by (instance) (oracle_sessions_blocked_value{instance=~\"$instance\"})",
+          "expr": "sum by (instance) (oracledb_oracle_sessions_blocked_value{instance=~\"$instance\"})",
           "legendFormat": "{{instance}}"
         }
       ],
@@ -184,7 +184,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "topk(15, sort_desc(sum by (username) (oracle_sessions_by_user_value{instance=~\"$instance\"})))",
+          "expr": "topk(15, sort_desc(sum by (username) (oracledb_oracle_sessions_by_user_value{instance=~\"$instance\"})))",
           "legendFormat": "{{username}}",
           "format": "table",
           "instant": true
@@ -204,7 +204,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "topk(15, sort_desc(sum by (program) (oracle_sessions_by_program_value{instance=~\"$instance\"})))",
+          "expr": "topk(15, sort_desc(sum by (program) (oracledb_oracle_sessions_by_program_value{instance=~\"$instance\"})))",
           "legendFormat": "{{program}}",
           "format": "table",
           "instant": true
@@ -224,7 +224,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "topk(15, sort_desc(sum by (machine) (oracle_sessions_by_machine_value{instance=~\"$instance\"})))",
+          "expr": "topk(15, sort_desc(sum by (machine) (oracledb_oracle_sessions_by_machine_value{instance=~\"$instance\"})))",
           "legendFormat": "{{machine}}",
           "format": "table",
           "instant": true
@@ -244,7 +244,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sort_desc(sum by (wait_class) (oracle_sessions_by_wait_class_value{instance=~\"$instance\"}))",
+          "expr": "sort_desc(sum by (wait_class) (oracledb_oracle_sessions_by_wait_class_value{instance=~\"$instance\"}))",
           "legendFormat": "{{wait_class}}",
           "format": "table",
           "instant": true
@@ -264,7 +264,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "topk(15, sort_desc(sum by (event) (oracle_ash_like_wait_event_value{instance=~\"$instance\"})))",
+          "expr": "topk(15, sort_desc(sum by (event) (oracledb_oracle_ash_like_wait_event_value{instance=~\"$instance\"})))",
           "legendFormat": "{{event}}",
           "format": "table",
           "instant": true
@@ -284,7 +284,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sort_desc(oracle_blocking_tree_value{instance=~\"$instance\"})",
+          "expr": "sort_desc(oracledb_oracle_blocking_tree_value{instance=~\"$instance\"})",
           "legendFormat": "blocked={{blocked_sid}} blocker={{blocking_sid}} user={{blocked_user}} status={{blocking_status}} event={{event}}",
           "format": "table",
           "instant": true
@@ -302,7 +302,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sort_desc(oracle_long_running_sessions_value{instance=~\"$instance\"})",
+          "expr": "sort_desc(oracledb_oracle_long_running_sessions_value{instance=~\"$instance\"})",
           "legendFormat": "sid={{sid}} serial={{serial}} user={{username}} machine={{machine}} program={{program}} event={{event}} sql={{sql_id}}",
           "format": "table",
           "instant": true
@@ -320,7 +320,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sort_desc(oracle_active_sql_value{instance=~\"$instance\"})",
+          "expr": "sort_desc(oracledb_oracle_active_sql_value{instance=~\"$instance\"})",
           "legendFormat": "sql={{sql_id}} user={{username}} program={{program}}",
           "format": "table",
           "instant": true

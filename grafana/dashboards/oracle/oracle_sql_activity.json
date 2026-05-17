@@ -149,7 +149,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sort_desc(oracle_top_sql_version_count_value{instance=~\"$instance\"})",
+          "expr": "sort_desc(oracledb_oracle_top_sql_version_count_value{instance=~\"$instance\"})",
           "legendFormat": "{{sql_id}}",
           "format": "table",
           "instant": true
@@ -164,7 +164,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "oracle_sql_plan_hash_value{instance=~\"$instance\"}",
+          "expr": "oracledb_oracle_sql_plan_hash_value{instance=~\"$instance\"}",
           "legendFormat": "sql={{sql_id}} plan={{plan_hash_value}}",
           "format": "table",
           "instant": true
