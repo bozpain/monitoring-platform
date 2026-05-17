@@ -5,7 +5,11 @@
   "schemaVersion": 39,
   "version": 2,
   "refresh": "15s",
-  "tags": ["oracle", "sql", "performance"],
+  "tags": [
+    "oracle",
+    "sql",
+    "performance"
+  ],
   "editable": true,
   "graphTooltip": 1,
   "links": [
@@ -18,16 +22,18 @@
   "templating": {
     "list": [
       {
-        "name": "instance",
+        "name": "db_host",
         "type": "query",
         "datasource": {
           "type": "prometheus",
           "uid": "Prometheus"
         },
-        "query": "label_values(up{job=\"oracle\"}, instance)",
+        "query": "label_values(up{job=\"oracle\"}, db_host)",
         "refresh": 1,
         "includeAll": true,
-        "multi": true
+        "multi": true,
+        "label": "DB Host",
+        "definition": "label_values(up{job=\"oracle\"}, db_host)"
       }
     ]
   },
@@ -40,11 +46,19 @@
       "id": 1,
       "type": "table",
       "title": "Top SQL by Elapsed Time Rate",
-      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "topk(20, sort_desc(oracle:sql_elapsed_seconds_per_sec:rate5m{instance=~\"$instance\"}))",
+          "expr": "topk(20, sort_desc(oracle:sql_elapsed_seconds_per_sec:rate5m{instance=~\"$db_host\"}))",
           "legendFormat": "{{sql_id}} plan={{plan_hash_value}} module={{module}} service={{service_name}}",
           "format": "table",
           "instant": true
@@ -55,11 +69,19 @@
       "id": 2,
       "type": "table",
       "title": "Top SQL by CPU Time Rate",
-      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "topk(20, sort_desc(oracle:sql_cpu_seconds_per_sec:rate5m{instance=~\"$instance\"}))",
+          "expr": "topk(20, sort_desc(oracle:sql_cpu_seconds_per_sec:rate5m{instance=~\"$db_host\"}))",
           "legendFormat": "{{sql_id}} plan={{plan_hash_value}} module={{module}} service={{service_name}}",
           "format": "table",
           "instant": true
@@ -70,11 +92,19 @@
       "id": 3,
       "type": "table",
       "title": "Top SQL by Buffer Gets / Exec",
-      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "topk(20, sort_desc(oracle:sql_buffer_gets_per_exec:rate5m{instance=~\"$instance\"}))",
+          "expr": "topk(20, sort_desc(oracle:sql_buffer_gets_per_exec:rate5m{instance=~\"$db_host\"}))",
           "legendFormat": "{{sql_id}} plan={{plan_hash_value}} module={{module}} service={{service_name}}",
           "format": "table",
           "instant": true
@@ -85,11 +115,19 @@
       "id": 4,
       "type": "table",
       "title": "Top SQL by Disk Reads / Exec",
-      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "topk(20, sort_desc(oracle:sql_disk_reads_per_exec:rate5m{instance=~\"$instance\"}))",
+          "expr": "topk(20, sort_desc(oracle:sql_disk_reads_per_exec:rate5m{instance=~\"$db_host\"}))",
           "legendFormat": "{{sql_id}} plan={{plan_hash_value}} module={{module}} service={{service_name}}",
           "format": "table",
           "instant": true
@@ -100,11 +138,19 @@
       "id": 5,
       "type": "table",
       "title": "Top SQL by Executions / Sec",
-      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "topk(20, sort_desc(oracle:sql_executions_per_sec:rate5m{instance=~\"$instance\"}))",
+          "expr": "topk(20, sort_desc(oracle:sql_executions_per_sec:rate5m{instance=~\"$db_host\"}))",
           "legendFormat": "{{sql_id}} plan={{plan_hash_value}} module={{module}} service={{service_name}}",
           "format": "table",
           "instant": true
@@ -115,11 +161,19 @@
       "id": 6,
       "type": "table",
       "title": "Top SQL by Rows / Exec",
-      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "topk(20, sort_desc(oracle:sql_rows_per_exec:rate5m{instance=~\"$instance\"}))",
+          "expr": "topk(20, sort_desc(oracle:sql_rows_per_exec:rate5m{instance=~\"$db_host\"}))",
           "legendFormat": "{{sql_id}} plan={{plan_hash_value}} module={{module}} service={{service_name}}",
           "format": "table",
           "instant": true
@@ -130,11 +184,19 @@
       "id": 7,
       "type": "table",
       "title": "Top SQL by Parse Calls / Sec",
-      "gridPos": { "x": 0, "y": 24, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "topk(20, sort_desc(oracle:sql_parse_calls_per_sec:rate5m{instance=~\"$instance\"}))",
+          "expr": "topk(20, sort_desc(oracle:sql_parse_calls_per_sec:rate5m{instance=~\"$db_host\"}))",
           "legendFormat": "{{sql_id}} plan={{plan_hash_value}} module={{module}} service={{service_name}}",
           "format": "table",
           "instant": true
@@ -145,11 +207,19 @@
       "id": 8,
       "type": "table",
       "title": "Top SQL Version Count (Cursor Issues)",
-      "gridPos": { "x": 12, "y": 24, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 12,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sort_desc(oracledb_oracle_top_sql_version_count_value{instance=~\"$instance\"})",
+          "expr": "sort_desc(oracledb_oracle_top_sql_version_count_value{instance=~\"$db_host\"})",
           "legendFormat": "{{sql_id}}",
           "format": "table",
           "instant": true
@@ -160,11 +230,19 @@
       "id": 9,
       "type": "table",
       "title": "SQL Plan Hash Mapping",
-      "gridPos": { "x": 0, "y": 32, "w": 24, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "oracledb_oracle_sql_plan_hash_value{instance=~\"$instance\"}",
+          "expr": "oracledb_oracle_sql_plan_hash_value{instance=~\"$db_host\"}",
           "legendFormat": "sql={{sql_id}} plan={{plan_hash_value}}",
           "format": "table",
           "instant": true
@@ -174,7 +252,10 @@
         "defaults": {},
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "sql_id" },
+            "matcher": {
+              "id": "byName",
+              "options": "sql_id"
+            },
             "properties": [
               {
                 "id": "links",
@@ -194,11 +275,19 @@
       "id": 10,
       "type": "table",
       "title": "SQL Plan Change Candidates",
-      "gridPos": { "x": 0, "y": 40, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sort_desc(oracle:sql_plan_count{instance=~\"$instance\"})",
+          "expr": "sort_desc(oracle:sql_plan_count{instance=~\"$db_host\"})",
           "legendFormat": "{{sql_id}}",
           "format": "table",
           "instant": true
@@ -209,11 +298,19 @@
       "id": 11,
       "type": "table",
       "title": "Wait-to-SQL Attribution",
-      "gridPos": { "x": 12, "y": 40, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 12,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "topk(30, sort_desc(oracle:active_sessions_by_sql_wait{instance=~\"$instance\"}))",
+          "expr": "topk(30, sort_desc(oracle:active_sessions_by_sql_wait{instance=~\"$db_host\"}))",
           "legendFormat": "sql={{sql_id}} wait={{event}} module={{module}}",
           "format": "table",
           "instant": true
@@ -224,11 +321,19 @@
       "id": 12,
       "type": "barchart",
       "title": "Elapsed Time Rate by Module",
-      "gridPos": { "x": 0, "y": 48, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 48,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "topk(15, sort_desc(sum by (module) (oracle:sql_elapsed_seconds_per_sec:rate5m{instance=~\"$instance\"})))",
+          "expr": "topk(15, sort_desc(sum by (module) (oracle:sql_elapsed_seconds_per_sec:rate5m{instance=~\"$db_host\"})))",
           "legendFormat": "{{module}}",
           "format": "table",
           "instant": true
@@ -244,11 +349,19 @@
       "id": 13,
       "type": "barchart",
       "title": "Elapsed Time Rate by Service",
-      "gridPos": { "x": 12, "y": 48, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 12,
+        "y": 48,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "topk(15, sort_desc(sum by (service_name) (oracle:sql_elapsed_seconds_per_sec:rate5m{instance=~\"$instance\"})))",
+          "expr": "topk(15, sort_desc(sum by (service_name) (oracle:sql_elapsed_seconds_per_sec:rate5m{instance=~\"$db_host\"})))",
           "legendFormat": "{{service_name}}",
           "format": "table",
           "instant": true

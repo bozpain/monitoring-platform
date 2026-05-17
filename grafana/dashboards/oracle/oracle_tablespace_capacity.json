@@ -5,19 +5,23 @@
   "schemaVersion": 39,
   "version": 1,
   "refresh": "30s",
-  "tags": ["oracle", "tablespace", "capacity"],
+  "tags": [
+    "oracle",
+    "tablespace",
+    "capacity"
+  ],
   "editable": true,
   "graphTooltip": 1,
   "templating": {
     "list": [
       {
-        "name": "instance",
+        "name": "db_host",
         "type": "query",
         "datasource": {
           "type": "prometheus",
           "uid": "Prometheus"
         },
-        "query": "label_values(up{job=\"oracle\"}, instance)",
+        "query": "label_values(up{job=\"oracle\"}, db_host)",
         "refresh": 1,
         "includeAll": true,
         "multi": true,
@@ -25,7 +29,9 @@
           "selected": true,
           "text": "All",
           "value": "$__all"
-        }
+        },
+        "label": "DB Host",
+        "definition": "label_values(up{job=\"oracle\"}, db_host)"
       }
     ]
   },
@@ -38,11 +44,19 @@
       "id": 1,
       "type": "stat",
       "title": "Critical Tablespaces > 90%",
-      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "count(oracledb_oracle_tablespace_usage_used_percent{instance=~\"$instance\"} > 90)"
+          "expr": "count(oracledb_oracle_tablespace_usage_used_percent{instance=~\"$db_host\"} > 90)"
         }
       ],
       "fieldConfig": {
@@ -50,15 +64,28 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 3 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 3
+              }
             ]
           }
         }
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
         "colorMode": "background",
         "graphMode": "area"
       }
@@ -67,11 +94,19 @@
       "id": 2,
       "type": "stat",
       "title": "Warning Tablespaces > 80%",
-      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "count(oracledb_oracle_tablespace_usage_used_percent{instance=~\"$instance\"} > 80)"
+          "expr": "count(oracledb_oracle_tablespace_usage_used_percent{instance=~\"$db_host\"} > 80)"
         }
       ],
       "fieldConfig": {
@@ -79,15 +114,28 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 5 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
             ]
           }
         }
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
         "colorMode": "background",
         "graphMode": "area"
       }
@@ -96,11 +144,19 @@
       "id": 3,
       "type": "stat",
       "title": "TEMP Critical > 80%",
-      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "count(oracledb_oracle_temp_usage_used_percent{instance=~\"$instance\"} > 80)"
+          "expr": "count(oracledb_oracle_temp_usage_used_percent{instance=~\"$db_host\"} > 80)"
         }
       ],
       "fieldConfig": {
@@ -108,15 +164,28 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 3 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 3
+              }
             ]
           }
         }
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
         "colorMode": "background",
         "graphMode": "area"
       }
@@ -125,11 +194,19 @@
       "id": 4,
       "type": "stat",
       "title": "FRA Limit GB",
-      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sum(oracledb_oracle_fra_limit_value{instance=~\"$instance\"})"
+          "expr": "sum(oracledb_oracle_fra_limit_value{instance=~\"$db_host\"})"
         }
       ],
       "fieldConfig": {
@@ -138,7 +215,11 @@
         }
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
         "colorMode": "background",
         "graphMode": "area"
       }
@@ -147,11 +228,19 @@
       "id": 5,
       "type": "table",
       "title": "Tablespace Usage Detail",
-      "gridPos": { "x": 0, "y": 4, "w": 24, "h": 10 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sort_desc(oracledb_oracle_tablespace_usage_used_percent{instance=~\"$instance\"})",
+          "expr": "sort_desc(oracledb_oracle_tablespace_usage_used_percent{instance=~\"$db_host\"})",
           "legendFormat": "{{instance}} {{tablespace_name}}",
           "format": "table",
           "instant": true
@@ -165,11 +254,19 @@
       "id": 6,
       "type": "barchart",
       "title": "Top Tablespace Used %",
-      "gridPos": { "x": 0, "y": 14, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "topk(15, sort_desc(oracledb_oracle_tablespace_usage_used_percent{instance=~\"$instance\"}))",
+          "expr": "topk(15, sort_desc(oracledb_oracle_tablespace_usage_used_percent{instance=~\"$db_host\"}))",
           "legendFormat": "{{instance}} {{tablespace_name}}",
           "format": "table",
           "instant": true
@@ -185,11 +282,19 @@
       "id": 7,
       "type": "barchart",
       "title": "Top Tablespace Free GB",
-      "gridPos": { "x": 12, "y": 14, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 12,
+        "y": 14,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "topk(15, sort_desc(oracledb_oracle_tablespace_usage_free_gb{instance=~\"$instance\"}))",
+          "expr": "topk(15, sort_desc(oracledb_oracle_tablespace_usage_free_gb{instance=~\"$db_host\"}))",
           "legendFormat": "{{instance}} {{tablespace_name}}",
           "format": "table",
           "instant": true
@@ -210,11 +315,19 @@
       "id": 8,
       "type": "timeseries",
       "title": "Tablespace Used % Trend",
-      "gridPos": { "x": 0, "y": 22, "w": 24, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "oracledb_oracle_tablespace_usage_used_percent{instance=~\"$instance\"}",
+          "expr": "oracledb_oracle_tablespace_usage_used_percent{instance=~\"$db_host\"}",
           "legendFormat": "{{instance}} {{tablespace_name}}"
         }
       ],
@@ -224,19 +337,33 @@
         }
       },
       "options": {
-        "legend": { "displayMode": "table", "placement": "bottom" },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       }
     },
     {
       "id": 9,
       "type": "table",
       "title": "Temporary Tablespace Usage",
-      "gridPos": { "x": 0, "y": 30, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sort_desc(oracledb_oracle_temp_usage_used_percent{instance=~\"$instance\"})",
+          "expr": "sort_desc(oracledb_oracle_temp_usage_used_percent{instance=~\"$db_host\"})",
           "legendFormat": "{{instance}} {{tablespace_name}}",
           "format": "table",
           "instant": true
@@ -255,11 +382,19 @@
       "id": 10,
       "type": "table",
       "title": "FRA Usage by File Type",
-      "gridPos": { "x": 12, "y": 30, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 12,
+        "y": 30,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sort_desc(oracledb_oracle_fra_usage_used_percent{instance=~\"$instance\"})",
+          "expr": "sort_desc(oracledb_oracle_fra_usage_used_percent{instance=~\"$db_host\"})",
           "legendFormat": "{{instance}} {{file_type}}",
           "format": "table",
           "instant": true
@@ -278,11 +413,19 @@
       "id": 11,
       "type": "timeseries",
       "title": "TEMP Used % Trend",
-      "gridPos": { "x": 0, "y": 38, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "oracledb_oracle_temp_usage_used_percent{instance=~\"$instance\"}",
+          "expr": "oracledb_oracle_temp_usage_used_percent{instance=~\"$db_host\"}",
           "legendFormat": "{{instance}} {{tablespace_name}}"
         }
       ],
@@ -292,19 +435,33 @@
         }
       },
       "options": {
-        "legend": { "displayMode": "table", "placement": "bottom" },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       }
     },
     {
       "id": 12,
       "type": "timeseries",
       "title": "FRA Used % Trend",
-      "gridPos": { "x": 12, "y": 38, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 12,
+        "y": 38,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "oracledb_oracle_fra_usage_used_percent{instance=~\"$instance\"}",
+          "expr": "oracledb_oracle_fra_usage_used_percent{instance=~\"$db_host\"}",
           "legendFormat": "{{instance}} {{file_type}}"
         }
       ],
@@ -314,8 +471,14 @@
         }
       },
       "options": {
-        "legend": { "displayMode": "table", "placement": "bottom" },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       }
     }
   ]

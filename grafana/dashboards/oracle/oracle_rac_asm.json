@@ -5,19 +5,23 @@
   "schemaVersion": 39,
   "version": 1,
   "refresh": "30s",
-  "tags": ["oracle", "rac", "asm"],
+  "tags": [
+    "oracle",
+    "rac",
+    "asm"
+  ],
   "editable": true,
   "graphTooltip": 1,
   "templating": {
     "list": [
       {
-        "name": "instance",
+        "name": "db_host",
         "type": "query",
         "datasource": {
           "type": "prometheus",
           "uid": "Prometheus"
         },
-        "query": "label_values(up{job=\"oracle\"}, instance)",
+        "query": "label_values(up{job=\"oracle\"}, db_host)",
         "refresh": 1,
         "includeAll": true,
         "multi": true,
@@ -25,7 +29,9 @@
           "selected": true,
           "text": "All",
           "value": "$__all"
-        }
+        },
+        "label": "DB Host",
+        "definition": "label_values(up{job=\"oracle\"}, db_host)"
       }
     ]
   },
@@ -38,15 +44,27 @@
       "id": 1,
       "type": "stat",
       "title": "RAC Instances",
-      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "count(oracledb_oracle_rac_instance_status_value{instance=~\"$instance\"})"
+          "expr": "count(oracledb_oracle_rac_instance_status_value{instance=~\"$db_host\"})"
         }
       ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
         "colorMode": "background",
         "graphMode": "none"
       }
@@ -55,15 +73,27 @@
       "id": 2,
       "type": "stat",
       "title": "RAC Active Sessions",
-      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sum(oracledb_oracle_rac_active_sessions_value{instance=~\"$instance\"})"
+          "expr": "sum(oracledb_oracle_rac_active_sessions_value{instance=~\"$db_host\"})"
         }
       ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
         "colorMode": "background",
         "graphMode": "area"
       }
@@ -72,11 +102,19 @@
       "id": 3,
       "type": "stat",
       "title": "RAC Blocked Sessions",
-      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sum(oracledb_oracle_rac_blocked_sessions_value{instance=~\"$instance\"})"
+          "expr": "sum(oracledb_oracle_rac_blocked_sessions_value{instance=~\"$db_host\"})"
         }
       ],
       "fieldConfig": {
@@ -84,15 +122,28 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 5 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
             ]
           }
         }
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
         "colorMode": "background",
         "graphMode": "area"
       }
@@ -101,11 +152,19 @@
       "id": 4,
       "type": "stat",
       "title": "ASM Critical > 90%",
-      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "count(oracledb_oracle_asm_diskgroup_usage_used_percent{instance=~\"$instance\"} > 90)"
+          "expr": "count(oracledb_oracle_asm_diskgroup_usage_used_percent{instance=~\"$db_host\"} > 90)"
         }
       ],
       "fieldConfig": {
@@ -113,15 +172,28 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 3 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 3
+              }
             ]
           }
         }
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
         "colorMode": "background",
         "graphMode": "area"
       }
@@ -130,11 +202,19 @@
       "id": 5,
       "type": "table",
       "title": "RAC Instance Status",
-      "gridPos": { "x": 0, "y": 4, "w": 24, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "oracledb_oracle_rac_instance_status_value{instance=~\"$instance\"}",
+          "expr": "oracledb_oracle_rac_instance_status_value{instance=~\"$db_host\"}",
           "legendFormat": "{{instance_name}} {{host_name}} {{status}}",
           "format": "table",
           "instant": true
@@ -148,45 +228,81 @@
       "id": 6,
       "type": "timeseries",
       "title": "RAC Active Sessions by Instance",
-      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sum by (instance_name) (oracledb_oracle_rac_active_sessions_value{instance=~\"$instance\"})",
+          "expr": "sum by (instance_name) (oracledb_oracle_rac_active_sessions_value{instance=~\"$db_host\"})",
           "legendFormat": "{{instance_name}}"
         }
       ],
       "options": {
-        "legend": { "displayMode": "table", "placement": "bottom" },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       }
     },
     {
       "id": 7,
       "type": "timeseries",
       "title": "RAC Blocked Sessions by Instance",
-      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sum by (instance_name) (oracledb_oracle_rac_blocked_sessions_value{instance=~\"$instance\"})",
+          "expr": "sum by (instance_name) (oracledb_oracle_rac_blocked_sessions_value{instance=~\"$db_host\"})",
           "legendFormat": "{{instance_name}}"
         }
       ],
       "options": {
-        "legend": { "displayMode": "table", "placement": "bottom" },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       }
     },
     {
       "id": 8,
       "type": "barchart",
       "title": "RAC Wait Class",
-      "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sort_desc(sum by (instance_name, wait_class) (oracledb_oracle_rac_wait_class_value{instance=~\"$instance\"}))",
+          "expr": "sort_desc(sum by (instance_name, wait_class) (oracledb_oracle_rac_wait_class_value{instance=~\"$db_host\"}))",
           "legendFormat": "{{instance_name}} {{wait_class}}",
           "format": "table",
           "instant": true
@@ -202,11 +318,19 @@
       "id": 9,
       "type": "barchart",
       "title": "Global Cache Waits",
-      "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sort_desc(sum by (instance_name, event) (oracledb_oracle_rac_gc_waits_value{instance=~\"$instance\"}))",
+          "expr": "sort_desc(sum by (instance_name, event) (oracledb_oracle_rac_gc_waits_value{instance=~\"$db_host\"}))",
           "legendFormat": "{{instance_name}} {{event}}",
           "format": "table",
           "instant": true
@@ -222,11 +346,19 @@
       "id": 10,
       "type": "table",
       "title": "Oracle Services",
-      "gridPos": { "x": 0, "y": 28, "w": 24, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "oracledb_oracle_services_status_value{instance=~\"$instance\"}",
+          "expr": "oracledb_oracle_services_status_value{instance=~\"$db_host\"}",
           "legendFormat": "inst={{inst_id}} service={{name}} network={{network_name}}",
           "format": "table",
           "instant": true
@@ -240,11 +372,19 @@
       "id": 11,
       "type": "table",
       "title": "ASM Diskgroup Usage",
-      "gridPos": { "x": 0, "y": 36, "w": 24, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sort_desc(oracledb_oracle_asm_diskgroup_usage_used_percent{instance=~\"$instance\"})",
+          "expr": "sort_desc(oracledb_oracle_asm_diskgroup_usage_used_percent{instance=~\"$db_host\"})",
           "legendFormat": "{{name}} {{state}} {{type}}",
           "format": "table",
           "instant": true
@@ -263,11 +403,19 @@
       "id": 12,
       "type": "timeseries",
       "title": "ASM Diskgroup Used % Trend",
-      "gridPos": { "x": 0, "y": 44, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 44,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "oracledb_oracle_asm_diskgroup_usage_used_percent{instance=~\"$instance\"}",
+          "expr": "oracledb_oracle_asm_diskgroup_usage_used_percent{instance=~\"$db_host\"}",
           "legendFormat": "{{instance}} {{name}}"
         }
       ],
@@ -277,19 +425,33 @@
         }
       },
       "options": {
-        "legend": { "displayMode": "table", "placement": "bottom" },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       }
     },
     {
       "id": 13,
       "type": "table",
       "title": "ASM Operation / Rebalance",
-      "gridPos": { "x": 12, "y": 44, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 12,
+        "y": 44,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "oracledb_oracle_asm_operation_value{instance=~\"$instance\"}",
+          "expr": "oracledb_oracle_asm_operation_value{instance=~\"$db_host\"}",
           "legendFormat": "group={{group_number}} operation={{operation}} state={{state}} power={{power}}",
           "format": "table",
           "instant": true

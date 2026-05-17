@@ -5,19 +5,23 @@
   "schemaVersion": 39,
   "version": 2,
   "refresh": "15s",
-  "tags": ["oracle", "sessions", "blocking"],
+  "tags": [
+    "oracle",
+    "sessions",
+    "blocking"
+  ],
   "editable": true,
   "graphTooltip": 1,
   "templating": {
     "list": [
       {
-        "name": "instance",
+        "name": "db_host",
         "type": "query",
         "datasource": {
           "type": "prometheus",
           "uid": "Prometheus"
         },
-        "query": "label_values(up{job=\"oracle\"}, instance)",
+        "query": "label_values(up{job=\"oracle\"}, db_host)",
         "refresh": 1,
         "includeAll": true,
         "multi": true,
@@ -25,7 +29,9 @@
           "selected": true,
           "text": "All",
           "value": "$__all"
-        }
+        },
+        "label": "DB Host",
+        "definition": "label_values(up{job=\"oracle\"}, db_host)"
       }
     ]
   },
@@ -38,15 +44,27 @@
       "id": 1,
       "type": "stat",
       "title": "Total Sessions",
-      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sum(oracledb_oracle_sessions_total_value{instance=~\"$instance\"})"
+          "expr": "sum(oracledb_oracle_sessions_total_value{instance=~\"$db_host\"})"
         }
       ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
         "colorMode": "background",
         "graphMode": "area"
       }
@@ -55,11 +73,19 @@
       "id": 2,
       "type": "stat",
       "title": "Active Sessions",
-      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sum(oracledb_oracle_sessions_active_value{instance=~\"$instance\"})"
+          "expr": "sum(oracledb_oracle_sessions_active_value{instance=~\"$db_host\"})"
         }
       ],
       "fieldConfig": {
@@ -67,15 +93,28 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 50 },
-              { "color": "red", "value": 100 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
             ]
           }
         }
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
         "colorMode": "background",
         "graphMode": "area"
       }
@@ -84,11 +123,19 @@
       "id": 3,
       "type": "stat",
       "title": "Blocked Sessions",
-      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sum(oracledb_oracle_sessions_blocked_value{instance=~\"$instance\"})"
+          "expr": "sum(oracledb_oracle_sessions_blocked_value{instance=~\"$db_host\"})"
         }
       ],
       "fieldConfig": {
@@ -96,15 +143,28 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 5 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
             ]
           }
         }
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
         "colorMode": "background",
         "graphMode": "area"
       }
@@ -113,11 +173,19 @@
       "id": 4,
       "type": "stat",
       "title": "Long Running Sessions",
-      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "count(oracledb_oracle_long_running_sessions_value{instance=~\"$instance\"})"
+          "expr": "count(oracledb_oracle_long_running_sessions_value{instance=~\"$db_host\"})"
         }
       ],
       "fieldConfig": {
@@ -125,15 +193,28 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 5 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
             ]
           }
         }
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
         "colorMode": "background",
         "graphMode": "area"
       }
@@ -142,49 +223,85 @@
       "id": 5,
       "type": "timeseries",
       "title": "Sessions Trend",
-      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sum by (instance) (oracledb_oracle_sessions_total_value{instance=~\"$instance\"})",
+          "expr": "sum by (instance) (oracledb_oracle_sessions_total_value{instance=~\"$db_host\"})",
           "legendFormat": "{{instance}} total"
         },
         {
-          "expr": "sum by (instance) (oracledb_oracle_sessions_active_value{instance=~\"$instance\"})",
+          "expr": "sum by (instance) (oracledb_oracle_sessions_active_value{instance=~\"$db_host\"})",
           "legendFormat": "{{instance}} active"
         }
       ],
       "options": {
-        "legend": { "displayMode": "table", "placement": "bottom" },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       }
     },
     {
       "id": 6,
       "type": "timeseries",
       "title": "Blocked Sessions Trend",
-      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sum by (instance) (oracledb_oracle_sessions_blocked_value{instance=~\"$instance\"})",
+          "expr": "sum by (instance) (oracledb_oracle_sessions_blocked_value{instance=~\"$db_host\"})",
           "legendFormat": "{{instance}}"
         }
       ],
       "options": {
-        "legend": { "displayMode": "table", "placement": "bottom" },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       }
     },
     {
       "id": 7,
       "type": "barchart",
       "title": "Sessions by User",
-      "gridPos": { "x": 0, "y": 12, "w": 8, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "topk(15, sort_desc(sum by (username) (oracledb_oracle_sessions_by_user_value{instance=~\"$instance\"})))",
+          "expr": "topk(15, sort_desc(sum by (username) (oracledb_oracle_sessions_by_user_value{instance=~\"$db_host\"})))",
           "legendFormat": "{{username}}",
           "format": "table",
           "instant": true
@@ -200,11 +317,19 @@
       "id": 8,
       "type": "barchart",
       "title": "Sessions by Program",
-      "gridPos": { "x": 8, "y": 12, "w": 8, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 8,
+        "y": 12,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "topk(15, sort_desc(sum by (program) (oracledb_oracle_sessions_by_program_value{instance=~\"$instance\"})))",
+          "expr": "topk(15, sort_desc(sum by (program) (oracledb_oracle_sessions_by_program_value{instance=~\"$db_host\"})))",
           "legendFormat": "{{program}}",
           "format": "table",
           "instant": true
@@ -220,11 +345,19 @@
       "id": 9,
       "type": "barchart",
       "title": "Sessions by Machine",
-      "gridPos": { "x": 16, "y": 12, "w": 8, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 16,
+        "y": 12,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "topk(15, sort_desc(sum by (machine) (oracledb_oracle_sessions_by_machine_value{instance=~\"$instance\"})))",
+          "expr": "topk(15, sort_desc(sum by (machine) (oracledb_oracle_sessions_by_machine_value{instance=~\"$db_host\"})))",
           "legendFormat": "{{machine}}",
           "format": "table",
           "instant": true
@@ -240,11 +373,19 @@
       "id": 10,
       "type": "barchart",
       "title": "Active Sessions by Wait Class",
-      "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sort_desc(sum by (wait_class) (oracledb_oracle_sessions_by_wait_class_value{instance=~\"$instance\"}))",
+          "expr": "sort_desc(sum by (wait_class) (oracledb_oracle_sessions_by_wait_class_value{instance=~\"$db_host\"}))",
           "legendFormat": "{{wait_class}}",
           "format": "table",
           "instant": true
@@ -260,11 +401,19 @@
       "id": 11,
       "type": "barchart",
       "title": "Top Wait Events",
-      "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "topk(15, sort_desc(sum by (event) (oracledb_oracle_ash_like_wait_event_value{instance=~\"$instance\"})))",
+          "expr": "topk(15, sort_desc(sum by (event) (oracledb_oracle_ash_like_wait_event_value{instance=~\"$db_host\"})))",
           "legendFormat": "{{event}}",
           "format": "table",
           "instant": true
@@ -280,11 +429,19 @@
       "id": 12,
       "type": "table",
       "title": "Blocking Tree - Current Relationship",
-      "gridPos": { "x": 0, "y": 28, "w": 24, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sort_desc(oracledb_oracle_blocking_tree_value{instance=~\"$instance\"})",
+          "expr": "sort_desc(oracledb_oracle_blocking_tree_value{instance=~\"$db_host\"})",
           "legendFormat": "blocked={{blocked_sid}} blocker={{blocking_sid}} user={{blocked_user}} status={{blocking_status}} event={{event}}",
           "format": "table",
           "instant": true
@@ -298,11 +455,19 @@
       "id": 13,
       "type": "table",
       "title": "Long Running Active Sessions >= 5 Minutes",
-      "gridPos": { "x": 0, "y": 36, "w": 24, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sort_desc(oracledb_oracle_long_running_sessions_value{instance=~\"$instance\"})",
+          "expr": "sort_desc(oracledb_oracle_long_running_sessions_value{instance=~\"$db_host\"})",
           "legendFormat": "sid={{sid}} serial={{serial}} user={{username}} machine={{machine}} program={{program}} event={{event}} sql={{sql_id}}",
           "format": "table",
           "instant": true
@@ -316,11 +481,19 @@
       "id": 14,
       "type": "table",
       "title": "Active SQL by Session Count",
-      "gridPos": { "x": 0, "y": 44, "w": 24, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 44,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sort_desc(oracledb_oracle_active_sql_value{instance=~\"$instance\"})",
+          "expr": "sort_desc(oracledb_oracle_active_sql_value{instance=~\"$db_host\"})",
           "legendFormat": "sql={{sql_id}} user={{username}} program={{program}}",
           "format": "table",
           "instant": true
@@ -334,11 +507,19 @@
       "id": 15,
       "type": "table",
       "title": "Blocking by SQL",
-      "gridPos": { "x": 0, "y": 52, "w": 24, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 52,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sort_desc(oracle:blocking_by_sql{instance=~\"$instance\"})",
+          "expr": "sort_desc(oracle:blocking_by_sql{instance=~\"$db_host\"})",
           "legendFormat": "blocker={{blocking_sql_id}} blocked={{blocked_sql_id}} wait={{event}}",
           "format": "table",
           "instant": true
