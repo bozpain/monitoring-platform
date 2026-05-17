@@ -22,18 +22,24 @@
   "templating": {
     "list": [
       {
-        "name": "db_host",
+        "name": "instance",
         "type": "query",
         "datasource": {
           "type": "prometheus",
           "uid": "Prometheus"
         },
-        "query": "label_values(up{job=\"oracle\"}, db_host)",
+        "query": "label_values(up{job=\"oracle\"}, instance)",
         "refresh": 1,
         "includeAll": true,
         "multi": true,
-        "label": "DB Host",
-        "definition": "label_values(up{job=\"oracle\"}, db_host)"
+        "label": "instance",
+        "definition": "label_values(up{job=\"oracle\"}, instance)",
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        }
       }
     ]
   },
@@ -58,7 +64,7 @@
       },
       "targets": [
         {
-          "expr": "topk(20, sort_desc(oracle:sql_elapsed_seconds_per_sec:rate5m{instance=~\"$db_host\"}))",
+          "expr": "topk(20, sort_desc(oracle:sql_elapsed_seconds_per_sec:rate5m{instance=~\"$instance\"}))",
           "legendFormat": "{{sql_id}} plan={{plan_hash_value}} module={{module}} service={{service_name}}",
           "format": "table",
           "instant": true
@@ -81,7 +87,7 @@
       },
       "targets": [
         {
-          "expr": "topk(20, sort_desc(oracle:sql_cpu_seconds_per_sec:rate5m{instance=~\"$db_host\"}))",
+          "expr": "topk(20, sort_desc(oracle:sql_cpu_seconds_per_sec:rate5m{instance=~\"$instance\"}))",
           "legendFormat": "{{sql_id}} plan={{plan_hash_value}} module={{module}} service={{service_name}}",
           "format": "table",
           "instant": true
@@ -104,7 +110,7 @@
       },
       "targets": [
         {
-          "expr": "topk(20, sort_desc(oracle:sql_buffer_gets_per_exec:rate5m{instance=~\"$db_host\"}))",
+          "expr": "topk(20, sort_desc(oracle:sql_buffer_gets_per_exec:rate5m{instance=~\"$instance\"}))",
           "legendFormat": "{{sql_id}} plan={{plan_hash_value}} module={{module}} service={{service_name}}",
           "format": "table",
           "instant": true
@@ -127,7 +133,7 @@
       },
       "targets": [
         {
-          "expr": "topk(20, sort_desc(oracle:sql_disk_reads_per_exec:rate5m{instance=~\"$db_host\"}))",
+          "expr": "topk(20, sort_desc(oracle:sql_disk_reads_per_exec:rate5m{instance=~\"$instance\"}))",
           "legendFormat": "{{sql_id}} plan={{plan_hash_value}} module={{module}} service={{service_name}}",
           "format": "table",
           "instant": true
@@ -150,7 +156,7 @@
       },
       "targets": [
         {
-          "expr": "topk(20, sort_desc(oracle:sql_executions_per_sec:rate5m{instance=~\"$db_host\"}))",
+          "expr": "topk(20, sort_desc(oracle:sql_executions_per_sec:rate5m{instance=~\"$instance\"}))",
           "legendFormat": "{{sql_id}} plan={{plan_hash_value}} module={{module}} service={{service_name}}",
           "format": "table",
           "instant": true
@@ -173,7 +179,7 @@
       },
       "targets": [
         {
-          "expr": "topk(20, sort_desc(oracle:sql_rows_per_exec:rate5m{instance=~\"$db_host\"}))",
+          "expr": "topk(20, sort_desc(oracle:sql_rows_per_exec:rate5m{instance=~\"$instance\"}))",
           "legendFormat": "{{sql_id}} plan={{plan_hash_value}} module={{module}} service={{service_name}}",
           "format": "table",
           "instant": true
@@ -196,7 +202,7 @@
       },
       "targets": [
         {
-          "expr": "topk(20, sort_desc(oracle:sql_parse_calls_per_sec:rate5m{instance=~\"$db_host\"}))",
+          "expr": "topk(20, sort_desc(oracle:sql_parse_calls_per_sec:rate5m{instance=~\"$instance\"}))",
           "legendFormat": "{{sql_id}} plan={{plan_hash_value}} module={{module}} service={{service_name}}",
           "format": "table",
           "instant": true
@@ -219,7 +225,7 @@
       },
       "targets": [
         {
-          "expr": "sort_desc(oracledb_oracle_top_sql_version_count_value{instance=~\"$db_host\"})",
+          "expr": "sort_desc(oracledb_oracle_top_sql_version_count_value{instance=~\"$instance\"})",
           "legendFormat": "{{sql_id}}",
           "format": "table",
           "instant": true
@@ -242,7 +248,7 @@
       },
       "targets": [
         {
-          "expr": "oracledb_oracle_sql_plan_hash_value{instance=~\"$db_host\"}",
+          "expr": "oracledb_oracle_sql_plan_hash_value{instance=~\"$instance\"}",
           "legendFormat": "sql={{sql_id}} plan={{plan_hash_value}}",
           "format": "table",
           "instant": true
@@ -287,7 +293,7 @@
       },
       "targets": [
         {
-          "expr": "sort_desc(oracle:sql_plan_count{instance=~\"$db_host\"})",
+          "expr": "sort_desc(oracle:sql_plan_count{instance=~\"$instance\"})",
           "legendFormat": "{{sql_id}}",
           "format": "table",
           "instant": true
@@ -310,7 +316,7 @@
       },
       "targets": [
         {
-          "expr": "topk(30, sort_desc(oracle:active_sessions_by_sql_wait{instance=~\"$db_host\"}))",
+          "expr": "topk(30, sort_desc(oracle:active_sessions_by_sql_wait{instance=~\"$instance\"}))",
           "legendFormat": "sql={{sql_id}} wait={{event}} module={{module}}",
           "format": "table",
           "instant": true
@@ -333,7 +339,7 @@
       },
       "targets": [
         {
-          "expr": "topk(15, sort_desc(sum by (module) (oracle:sql_elapsed_seconds_per_sec:rate5m{instance=~\"$db_host\"})))",
+          "expr": "topk(15, sort_desc(sum by (module) (oracle:sql_elapsed_seconds_per_sec:rate5m{instance=~\"$instance\"})))",
           "legendFormat": "{{module}}",
           "format": "table",
           "instant": true
@@ -361,7 +367,7 @@
       },
       "targets": [
         {
-          "expr": "topk(15, sort_desc(sum by (service_name) (oracle:sql_elapsed_seconds_per_sec:rate5m{instance=~\"$db_host\"})))",
+          "expr": "topk(15, sort_desc(sum by (service_name) (oracle:sql_elapsed_seconds_per_sec:rate5m{instance=~\"$instance\"})))",
           "legendFormat": "{{service_name}}",
           "format": "table",
           "instant": true

@@ -15,13 +15,13 @@
   "templating": {
     "list": [
       {
-        "name": "db_host",
+        "name": "instance",
         "type": "query",
         "datasource": {
           "type": "prometheus",
           "uid": "Prometheus"
         },
-        "query": "label_values(up{job=\"oracle\"}, db_host)",
+        "query": "label_values(up{job=\"oracle\"}, instance)",
         "refresh": 1,
         "includeAll": true,
         "multi": true,
@@ -30,8 +30,9 @@
           "text": "All",
           "value": "$__all"
         },
-        "label": "DB Host",
-        "definition": "label_values(up{job=\"oracle\"}, db_host)"
+        "label": "instance",
+        "definition": "label_values(up{job=\"oracle\"}, instance)",
+        "allValue": ".*"
       }
     ]
   },
@@ -56,7 +57,7 @@
       },
       "targets": [
         {
-          "expr": "count(up{job=\"oracle\", instance=~\"$db_host\"})"
+          "expr": "count(up{job=\"oracle\", instance=~\"$instance\"})"
         }
       ],
       "options": {
@@ -85,7 +86,7 @@
       },
       "targets": [
         {
-          "expr": "count(up{job=\"oracle\", instance=~\"$db_host\"} == 1)"
+          "expr": "count(up{job=\"oracle\", instance=~\"$instance\"} == 1)"
         }
       ],
       "fieldConfig": {
@@ -131,7 +132,7 @@
       },
       "targets": [
         {
-          "expr": "count(up{job=\"oracle\", instance=~\"$db_host\"} == 0)"
+          "expr": "count(up{job=\"oracle\", instance=~\"$instance\"} == 0)"
         }
       ],
       "fieldConfig": {
@@ -177,7 +178,7 @@
       },
       "targets": [
         {
-          "expr": "sum(oracledb_oracle_sessions_active_value{instance=~\"$db_host\"})"
+          "expr": "sum(oracledb_oracle_sessions_active_value{instance=~\"$instance\"})"
         }
       ],
       "fieldConfig": {
@@ -227,7 +228,7 @@
       },
       "targets": [
         {
-          "expr": "sum(oracledb_oracle_sessions_blocked_value{instance=~\"$db_host\"})"
+          "expr": "sum(oracledb_oracle_sessions_blocked_value{instance=~\"$instance\"})"
         }
       ],
       "fieldConfig": {
@@ -277,7 +278,7 @@
       },
       "targets": [
         {
-          "expr": "sum(oracledb_oracle_db_time_per_sec_value{instance=~\"$db_host\"})"
+          "expr": "sum(oracledb_oracle_db_time_per_sec_value{instance=~\"$instance\"})"
         }
       ],
       "fieldConfig": {
@@ -328,7 +329,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (instance) (oracledb_oracle_sessions_active_value{instance=~\"$db_host\"})",
+          "expr": "sum by (instance) (oracledb_oracle_sessions_active_value{instance=~\"$instance\"})",
           "legendFormat": "{{instance}}"
         }
       ],
@@ -359,11 +360,11 @@
       },
       "targets": [
         {
-          "expr": "sum(oracledb_oracle_db_time_per_sec_value{instance=~\"$db_host\"})",
+          "expr": "sum(oracledb_oracle_db_time_per_sec_value{instance=~\"$instance\"})",
           "legendFormat": "DB Time / Sec"
         },
         {
-          "expr": "sum(oracledb_oracle_cpu_usage_per_sec_value{instance=~\"$db_host\"})",
+          "expr": "sum(oracledb_oracle_cpu_usage_per_sec_value{instance=~\"$instance\"})",
           "legendFormat": "CPU Usage / Sec"
         }
       ],
@@ -394,7 +395,7 @@
       },
       "targets": [
         {
-          "expr": "up{job=\"oracle\", instance=~\"$db_host\"}",
+          "expr": "up{job=\"oracle\", instance=~\"$instance\"}",
           "legendFormat": "{{instance}}",
           "format": "table",
           "instant": true
@@ -420,7 +421,7 @@
       },
       "targets": [
         {
-          "expr": "topk(10, sum by (instance) (oracledb_oracle_sessions_active_value{instance=~\"$db_host\"}))",
+          "expr": "topk(10, sum by (instance) (oracledb_oracle_sessions_active_value{instance=~\"$instance\"}))",
           "legendFormat": "{{instance}}",
           "format": "table",
           "instant": true
@@ -446,7 +447,7 @@
       },
       "targets": [
         {
-          "expr": "topk(10, sum by (instance) (oracledb_oracle_db_time_per_sec_value{instance=~\"$db_host\"}))",
+          "expr": "topk(10, sum by (instance) (oracledb_oracle_db_time_per_sec_value{instance=~\"$instance\"}))",
           "legendFormat": "{{instance}}",
           "format": "table",
           "instant": true
@@ -472,7 +473,7 @@
       },
       "targets": [
         {
-          "expr": "sort_desc(sum by (wait_class) (oracledb_oracle_ash_like_wait_class_value{instance=~\"$db_host\"}))",
+          "expr": "sort_desc(sum by (wait_class) (oracledb_oracle_ash_like_wait_class_value{instance=~\"$instance\"}))",
           "legendFormat": "{{wait_class}}",
           "format": "table",
           "instant": true
@@ -500,7 +501,7 @@
       },
       "targets": [
         {
-          "expr": "topk(10, sort_desc(sum by (event) (oracledb_oracle_ash_like_wait_event_value{instance=~\"$db_host\"})))",
+          "expr": "topk(10, sort_desc(sum by (event) (oracledb_oracle_ash_like_wait_event_value{instance=~\"$instance\"})))",
           "legendFormat": "{{event}}",
           "format": "table",
           "instant": true
@@ -528,7 +529,7 @@
       },
       "targets": [
         {
-          "expr": "sort_desc(oracledb_oracle_blocking_tree_value{instance=~\"$db_host\"})",
+          "expr": "sort_desc(oracledb_oracle_blocking_tree_value{instance=~\"$instance\"})",
           "legendFormat": "blocked={{blocked_sid}} blocker={{blocking_sid}} user={{blocked_user}} event={{event}}",
           "format": "table",
           "instant": true
